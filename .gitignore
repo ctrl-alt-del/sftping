@@ -1,15 +1,35 @@
 *.iml
 .gradle
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+/.idea
 .DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
 local.properties
+
+# Signing / keystores
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+release-signing.properties
+
+# Secrets / API keys
+secrets.properties
+apikeys.properties
+secrets.xml
+*.secret
+.env
+.env.*
+
+# Certificates / private keys
+*.p12
+*.pem
+*.key
+*.cer
+*.der
+
+# Service configs that embed keys
+google-services.json
