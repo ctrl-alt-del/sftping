@@ -3,7 +3,9 @@ package com.example.sftping.sftp
 import java.io.IOException
 
 interface ISftpClient {
-    suspend fun connect(host: String, port: Int, user: String, password: String?)
+    suspend fun connect(host: String, port: Int, user: String, password: String?): HostKeyResult
+
+    suspend fun trustAndProceed(host: String)
 
     suspend fun listFiles(path: String): List<RemoteFile>
 
