@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>sftping — 002 Upload flow mockups</title>
+<style>
+  :root{
+    --primary:#6650A4; --on-primary:#FFFFFF;
+    --primary-container:#EADDFF; --on-primary-container:#21005D;
+    --secondary-container:#E8DEF8; --on-secondary-container:#1D192B;
+    --tertiary-container:#FFD8E4; --on-tertiary-container:#31111D;
+    --surface:#FEF7FF; --surface-container:#F3EDF7; --surface-container-high:#ECE6F0; --surface-container-highest:#E6E0E9;
+    --on-surface:#1C1B1F; --on-surface-variant:#49454F;
+    --outline:#79747E; --outline-variant:#CAC4D0;
+    --error:#B3261E; --tracker:#E9E7EE; --green:#3B6939;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{width:1460px; height:900px; overflow:hidden;}
+  body{background:radial-gradient(1200px 600px at 50% -10%, #F1EFF5 0%, var(--tracker) 60%);
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--on-surface);
+    display:flex; flex-direction:column; padding:26px 50px 30px;}
+  .head{display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px;}
+  .kicker{font-size:11px; letter-spacing:.32em; text-transform:uppercase; color:var(--primary); font-weight:700;}
+  .title{font-size:24px; font-weight:680; letter-spacing:-.01em; color:#211B2E;}
+  .sub{font-size:12.5px; color:var(--on-surface-variant);}
+  .flowtag{font-size:11px; color:var(--on-surface-variant); display:flex; gap:8px; align-items:center;}
+  .flowtag b{color:var(--primary);}
+
+  .row{flex:1; display:flex; gap:28px; align-items:flex-start; justify-content:center;}
+  .frameWrap{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .phone{width:312px; height:700px; background:var(--surface); border-radius:30px; border:1px solid rgba(33,27,46,.10);
+    box-shadow:0 1px 1px rgba(33,27,46,.04), 0 18px 40px -18px rgba(33,27,46,.35); position:relative; overflow:hidden; display:flex; flex-direction:column;}
+  .caption{font-size:12px; font-weight:600; color:#37304A;} .caption span{font-weight:400; color:var(--on-surface-variant);}
+  .step{display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:var(--primary); color:#fff; font-size:11px; font-weight:700; margin-right:6px;}
+
+  .status{height:26px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; font-size:11px; font-weight:600; flex:0 0 auto;}
+  .appbar{height:52px; flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:0 8px 0 6px;}
+  .appbar .t{font-size:18px; font-weight:600; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .appbar .t small{display:block; font-size:11px; font-weight:500; color:var(--on-surface-variant);}
+  .ico{width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--on-surface-variant); flex:0 0 auto;}
+  .body{flex:1; overflow:hidden; padding:6px 16px 0;}
+  .mono{font-family:ui-monospace,Menlo,monospace;}
+  .crumb{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--on-surface-variant); padding:2px 4px 8px;} .crumb b{color:var(--on-surface);}
+
+  .listItem{display:flex; align-items:center; gap:14px; padding:11px 4px;}
+  .leadicon{width:42px; height:42px; border-radius:12px; background:var(--surface-container); display:flex; align-items:center; justify-content:center; flex:0 0 auto; color:var(--primary);}
+  .leadicon.file{color:var(--on-surface-variant);}
+  .li-main{flex:1; min-width:0;} .li-main .n{font-size:14.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;} .li-main .s{font-size:11.5px; color:var(--on-surface-variant); margin-top:2px;}
+
+  .nav{height:74px; flex:0 0 auto; background:var(--surface-container); display:flex; align-items:center; justify-content:space-around; padding-bottom:8px;}
+  .nav .item{display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--on-surface-variant); font-size:11px; font-weight:600;}
+  .nav .pill{width:60px; height:30px; border-radius:999px; display:flex; align-items:center; justify-content:center; color:var(--on-surface-variant);}
+  .nav .item.on .pill{background:var(--secondary-container); color:var(--on-secondary-container);} .nav .item.on{color:var(--on-surface);}
+
+  .scrim{position:absolute; inset:0; background:rgba(20,16,28,.40);}
+
+  /* speed-dial FAB menu */
+  .fab{position:absolute; right:18px; bottom:84px; width:60px; height:60px; border-radius:18px; background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 14px -4px rgba(33,27,46,.45);}
+  .dial{position:absolute; right:18px; bottom:160px; display:flex; flex-direction:column; align-items:flex-end; gap:14px;}
+  .dialItem{display:flex; align-items:center; gap:12px;}
+  .dialItem .lab{background:#312A3D; color:#fff; font-size:12px; font-weight:600; padding:6px 10px; border-radius:8px;}
+  .miniFab{width:46px; height:46px; border-radius:14px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px -3px rgba(33,27,46,.4);}
+  .miniFab.hi{background:var(--primary-container); color:var(--on-primary-container);}
+  .miniFab.lo{background:var(--surface-container-highest); color:var(--on-surface-variant);}
+
+  /* system SAF picker chrome */
+  .picker{background:#FbF9FC; height:100%; display:flex; flex-direction:column;}
+  .pkbar{height:56px; background:var(--surface-container-high); display:flex; align-items:center; gap:12px; padding:0 14px; font-size:16px; font-weight:600;}
+  .pkpath{padding:10px 16px; font-size:12px; color:var(--on-surface-variant); display:flex; gap:6px; align-items:center;}
+  .pkitem{display:flex; align-items:center; gap:14px; padding:10px 16px; font-size:14px;}
+  .pkitem.sel{background:var(--secondary-container);}
+  .pkico{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--on-surface-variant);}
+  .pkmeta{font-size:11px;color:var(--on-surface-variant);}
+  .pkcheck{margin-left:auto;width:20px;height:20px;border-radius:5px;border:2px solid var(--outline);}
+  .pkcheck.on{background:var(--primary);border-color:var(--primary);display:flex;align-items:center;justify-content:center;}
+  .pkselbar{margin-top:auto; height:60px; background:var(--surface-container-high); display:flex; align-items:center; justify-content:space-between; padding:0 18px; font-size:14px; font-weight:600;}
+  .pksys{font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--outline); text-align:center; padding:6px;}
+
+  /* bottom sheet */
+  .sheet{position:absolute; left:0; right:0; bottom:0; background:var(--surface-container-high); border-radius:28px 28px 0 0; padding:14px 22px 22px;}
+  .grab{width:34px; height:4px; border-radius:2px; background:var(--outline-variant); margin:0 auto 14px;}
+  .sheet h3{font-size:18px; font-weight:600; margin-bottom:14px;}
+  .selfile{display:flex; align-items:center; gap:14px; background:var(--surface); border:1px solid var(--outline-variant); border-radius:14px; padding:12px; margin-bottom:14px;}
+  .destfield{background:var(--surface); border:1px solid var(--outline-variant); border-radius:12px; padding:10px 14px; display:flex; align-items:center; gap:10px; margin-bottom:8px;}
+  .destfield .lbl{font-size:11px; color:var(--on-surface-variant);} .destfield .v{font-size:14px;} .destfield .col{flex:1;}
+  .note{display:flex; gap:8px; align-items:flex-start; font-size:11.5px; color:var(--on-surface-variant); margin-bottom:16px; padding:0 2px;}
+  .acts{display:flex; justify-content:flex-end; gap:8px; align-items:center;}
+  .tbtn{padding:11px 16px; border-radius:999px; font-size:14px; font-weight:600; color:var(--primary);}
+  .tbtn.fill{background:var(--primary); color:#fff; display:flex; align-items:center; gap:8px;}
+
+  /* transfers / progress */
+  .card{background:var(--surface-container); border-radius:16px; padding:14px; margin-bottom:12px;}
+  .card .top{display:flex; align-items:center; gap:12px;}
+  .badge{width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex:0 0 auto;}
+  .badge.up{background:var(--primary-container); color:var(--on-primary-container);}
+  .badge.done{background:#CDEDC6; color:var(--green);}
+  .card .nm{flex:1; min-width:0;} .card .nm .n{font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;} .card .nm .d{font-size:11px; color:var(--on-surface-variant); margin-top:1px;}
+  .progress{height:6px; border-radius:3px; background:var(--surface-container-highest); margin:12px 0 8px; overflow:hidden;}
+  .progress > i{display:block; height:100%; background:var(--primary); border-radius:3px;}
+  .meta{display:flex; justify-content:space-between; font-size:11.5px; color:var(--on-surface-variant);} .meta .mono{font-size:11.5px;}
+  .cardicons{display:flex; gap:4px;}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div>
+      <div class="kicker">sftping · feature 002</div>
+      <div class="title">Upload local file → remote server (F3)</div>
+      <div class="sub">Atomic upload via Storage Access Framework (no resume yet — that's 003). Material 3.</div>
+    </div>
+    <div class="flowtag"><b>FLOW</b> &nbsp;FAB&nbsp;→&nbsp;SAF picker&nbsp;→&nbsp;confirm&nbsp;→&nbsp;progress</div>
+  </div>
+
+  <div class="row">
+
+    <!-- 1: FAB speed dial -->
+    <div class="frameWrap">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>•••</span></div>
+        <div class="appbar"><div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></div><div class="t" style="opacity:.55">Files<small>root@192.168.1.10</small></div></div>
+        <div class="body" style="opacity:.5">
+          <div class="crumb">home <span>/</span> <b>ops</b></div>
+          <div class="listItem"><div class="leadicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div><div class="li-main"><div class="n">backups</div><div class="s">Folder · Apr 12 09:30</div></div></div>
+          <div class="listItem"><div class="leadicon file"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></div><div class="li-main"><div class="n">deploy.sh</div><div class="s"><span class="mono">2.1 KB</span> · Apr 09</div></div></div>
+        </div>
+        <div class="scrim" style="background:rgba(20,16,28,.18)"></div>
+        <div class="dial">
+          <div class="dialItem"><div class="lab">New folder</div><div class="miniFab lo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M12 11v4M10 13h4"/></svg></div></div>
+          <div class="dialItem"><div class="lab">Upload file</div><div class="miniFab hi"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></div></div>
+        </div>
+        <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+      </div>
+      <div class="caption"><span class="step">1</span>Upload entry <span>· FAB → Upload file</span></div>
+    </div>
+
+    <!-- 2: SAF system picker -->
+    <div class="frameWrap">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>•••</span></div>
+        <div class="picker">
+          <div class="pkbar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1B1F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>Choose a file</div>
+          <div class="pkpath"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg> Phone storage <b>›</b> Download</div>
+          <div class="pkitem"><div class="pkico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></div><div><div>invoice-Mar.pdf</div><div class="pkmeta">182 KB · Mar 31</div></div><div class="pkcheck"></div></div>
+          <div class="pkitem sel"><div class="pkico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></div><div><div>report-Q2.pdf</div><div class="pkmeta">4.6 MB · Apr 10</div></div><div class="pkcheck on"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 6"/></svg></div></div>
+          <div class="pkitem"><div class="pkico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 16l-5-5L5 21"/></svg></div><div><div>screenshot.png</div><div class="pkmeta">1.1 MB · Apr 11</div></div><div class="pkcheck"></div></div>
+          <div class="pkitem"><div class="pkico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6l2 2h6a2 2 0 0 1 2 2z"/></svg></div><div><div>config.tar.gz</div><div class="pkmeta">22 MB · Apr 06</div></div><div class="pkcheck"></div></div>
+          <div class="pkselbar"><span style="color:var(--on-surface-variant)">1 selected</span><span class="tbtn fill" style="padding:8px 18px">Select</span></div>
+          <div class="pksys">Android system picker · SAF</div>
+        </div>
+      </div>
+      <div class="caption"><span class="step">2</span>Pick local file <span>· system SAF picker</span></div>
+    </div>
+
+    <!-- 3: Confirm upload sheet -->
+    <div class="frameWrap">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>•••</span></div>
+        <div class="appbar"><div class="ico" style="opacity:.5"></div><div class="t" style="opacity:.5">Files<small>root@192.168.1.10</small></div></div>
+        <div class="body" style="opacity:.4"><div class="crumb">home <span>/</span> <b>ops</b></div><div class="listItem"><div class="leadicon"></div><div class="li-main"><div class="n">backups</div></div></div></div>
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <h3>Upload 1 file</h3>
+          <div class="selfile">
+            <div class="leadicon file" style="background:var(--surface-container-highest)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></div>
+            <div class="li-main"><div class="n">report-Q2.pdf</div><div class="s"><span class="mono">4.6 MB</span> · from Download</div></div>
+          </div>
+          <div class="destfield">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+            <div class="col"><div class="lbl">Upload to</div><div class="v mono">/home/ops</div></div>
+            <span class="tbtn" style="padding:6px 10px">Change</span>
+          </div>
+          <div class="note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--on-surface-variant)" stroke-width="1.8" style="flex:0 0 auto;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><span>No file named <b>report-Q2.pdf</b> exists at the destination — uploads as new.</span></div>
+          <div class="acts"><div class="tbtn">Cancel</div><div class="tbtn fill"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Upload</div></div>
+        </div>
+      </div>
+      <div class="caption"><span class="step">3</span>Confirm <span>· destination · overwrite check</span></div>
+    </div>
+
+    <!-- 4: Upload progress (Transfers) -->
+    <div class="frameWrap">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>•••</span></div>
+        <div class="appbar"><div class="t" style="padding-left:8px">Transfers</div><div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="#49454F"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div></div>
+        <div class="body">
+          <div style="font-size:12px; font-weight:700; color:var(--on-surface-variant); letter-spacing:.06em; margin:4px 4px 8px">ACTIVE</div>
+          <div class="card">
+            <div class="top">
+              <div class="badge up"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></div>
+              <div class="nm"><div class="n">report-Q2.pdf</div><div class="d">Uploading → /home/ops</div></div>
+              <div class="cardicons">
+                <div class="ico" style="width:34px;height:34px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="2" stroke-linecap="round"><path d="M7 5v14M15 5v14"/></svg></div>
+                <div class="ico" style="width:34px;height:34px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+              </div>
+            </div>
+            <div class="progress"><i style="width:64%"></i></div>
+            <div class="meta"><span><span class="mono">2.9 / 4.6 MB</span> · 64%</span><span><span class="mono">8.2 MB/s</span> · 0:12 left</span></div>
+          </div>
+          <div style="font-size:12px; font-weight:700; color:var(--on-surface-variant); letter-spacing:.06em; margin:14px 4px 8px">COMPLETED</div>
+          <div class="card" style="background:transparent; padding:8px 4px">
+            <div class="top">
+              <div class="badge done"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 6"/></svg></div>
+              <div class="nm"><div class="n">deploy.sh</div><div class="d">Uploaded · <span class="mono">2.1 KB</span></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="item"><div class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></div>Connect</div>
+          <div class="item"><div class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div>Files</div>
+          <div class="item on"><div class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M4 8h13l-3-4 1.4-1L21 8l-5.6 5-1.4-1 3-4H4zM20 16H7l3-4-1.4-1L3 16l5.6 5 1.4-1-3-4h13z"/></svg></div>Transfers</div>
+        </div>
+      </div>
+      <div class="caption"><span class="step">4</span>In progress <span>· speed · ETA · pause/cancel</span></div>
+    </div>
+
+  </div>
+</body>
+</html>

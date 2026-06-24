@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>sftping — 001 Connect & Browse mockups</title>
+<style>
+  :root{
+    --primary:#6650A4; --on-primary:#FFFFFF;
+    --primary-container:#EADDFF; --on-primary-container:#21005D;
+    --secondary-container:#E8DEF8; --on-secondary-container:#1D192B;
+    --surface:#FEF7FF; --surface-bright:#FEF7FF;
+    --surface-container:#F3EDF7; --surface-container-high:#ECE6F0;
+    --on-surface:#1C1B1F; --on-surface-variant:#49454F;
+    --outline:#79747E; --outline-variant:#CAC4D0;
+    --error:#B3261E; --error-container:#F9DEDC; --on-error-container:#410E0B;
+    --tracker:#E9E7EE;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{width:1460px; height:900px; overflow:hidden;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #F1EFF5 0%, var(--tracker) 60%);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color:var(--on-surface);
+    display:flex; flex-direction:column;
+    padding:26px 50px 30px;
+  }
+  /* ---- page header ---- */
+  .head{display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px;}
+  .head .lhs{display:flex; flex-direction:column; gap:4px;}
+  .kicker{font-size:11px; letter-spacing:.32em; text-transform:uppercase; color:var(--primary); font-weight:700;}
+  .title{font-size:24px; font-weight:680; letter-spacing:-.01em; color:#211B2E;}
+  .sub{font-size:12.5px; color:var(--on-surface-variant);}
+  .legend{display:flex; gap:14px; align-items:center; font-size:11px; color:var(--on-surface-variant);}
+  .swatch{display:flex; align-items:center; gap:6px;}
+  .dot{width:13px; height:13px; border-radius:4px; border:1px solid rgba(0,0,0,.08);}
+
+  /* ---- frame row ---- */
+  .row{flex:1; display:flex; gap:28px; align-items:flex-start; justify-content:center;}
+  .frameWrap{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .phone{
+    width:312px; height:700px; background:var(--surface); border-radius:30px;
+    border:1px solid rgba(33,27,46,.10);
+    box-shadow:0 1px 1px rgba(33,27,46,.04), 0 18px 40px -18px rgba(33,27,46,.35);
+    position:relative; overflow:hidden; display:flex; flex-direction:column;
+  }
+  .caption{font-size:12px; font-weight:600; color:#37304A;}
+  .caption span{font-weight:400; color:var(--on-surface-variant);}
+
+  /* status bar */
+  .status{height:26px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; font-size:11px; font-weight:600; color:var(--on-surface); flex:0 0 auto;}
+  .status .sig{display:flex; gap:5px; align-items:center;}
+  .status .sig svg{display:block;}
+
+  /* app bar */
+  .appbar{height:52px; flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:0 8px 0 6px;}
+  .appbar.ctr{background:var(--secondary-container);}
+  .appbar .t{font-size:18px; font-weight:600; letter-spacing:.1px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .appbar .t small{display:block; font-size:11px; font-weight:500; color:var(--on-surface-variant); letter-spacing:.2px;}
+  .ico{width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--on-surface-variant); flex:0 0 auto;}
+  .ico.dis{opacity:.34;}
+
+  .body{flex:1; overflow:hidden; padding:6px 16px 0;}
+
+  /* M3 filled text field */
+  .field{background:var(--surface-container-high); border-radius:8px 8px 0 0; border-bottom:2px solid var(--outline); padding:8px 14px 7px; margin-bottom:12px;}
+  .field .lbl{font-size:11px; color:var(--on-surface-variant);}
+  .field .val{font-size:15px; color:var(--on-surface); margin-top:2px; display:flex; align-items:center; justify-content:space-between;}
+  .field.focus{border-bottom:2px solid var(--primary);}
+  .field.focus .lbl{color:var(--primary);}
+  .mono{font-family:ui-monospace, "SF Mono", Menlo, monospace;}
+  .two{display:flex; gap:12px;} .two .field{flex:1;} .two .grow{flex:2;}
+
+  /* dropdown chip */
+  .recent{display:flex; align-items:center; gap:8px; background:var(--primary-container); color:var(--on-primary-container); border-radius:8px; padding:9px 12px; font-size:13px; font-weight:600; margin:2px 0 16px;}
+  .recent .host{font-family:ui-monospace,Menlo,monospace; font-weight:600;}
+  .recent .sp{flex:1;}
+
+  /* segmented */
+  .seg{display:flex; border:1px solid var(--outline); border-radius:999px; overflow:hidden; margin-bottom:14px;}
+  .seg div{flex:1; text-align:center; font-size:13px; font-weight:600; padding:8px 0; color:var(--on-surface-variant);}
+  .seg .on{background:var(--secondary-container); color:var(--on-secondary-container); display:flex; align-items:center; justify-content:center; gap:6px;}
+
+  /* switch row */
+  .swrow{display:flex; align-items:center; gap:12px; padding:6px 2px 0;}
+  .swrow .txt{flex:1;} .swrow .txt b{font-size:13.5px; font-weight:600;} .swrow .txt p{font-size:11.5px; color:var(--on-surface-variant); margin-top:1px;}
+  .switch{width:52px; height:32px; border-radius:999px; background:var(--primary); position:relative; flex:0 0 auto;}
+  .switch::after{content:""; position:absolute; right:4px; top:4px; width:24px; height:24px; border-radius:50%; background:#fff;}
+
+  /* filled button */
+  .btn{height:48px; border-radius:999px; background:var(--primary); color:var(--on-primary); display:flex; align-items:center; justify-content:center; gap:8px; font-size:15px; font-weight:600; margin-top:18px;}
+  .btn.tonal{background:var(--secondary-container); color:var(--on-secondary-container);}
+
+  /* list */
+  .listItem{display:flex; align-items:center; gap:14px; padding:11px 4px; border-radius:12px;}
+  .listItem.sel{background:var(--secondary-container);}
+  .leadicon{width:42px; height:42px; border-radius:12px; background:var(--surface-container); display:flex; align-items:center; justify-content:center; flex:0 0 auto; color:var(--primary);}
+  .leadicon.file{color:var(--on-surface-variant);}
+  .li-main{flex:1; min-width:0;}
+  .li-main .n{font-size:14.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .li-main .s{font-size:11.5px; color:var(--on-surface-variant); margin-top:2px;}
+  .li-main .s .mono{font-size:11.5px;}
+  .chev{color:var(--outline);}
+  .check{width:22px; height:22px; border-radius:6px; border:2px solid var(--outline); flex:0 0 auto;}
+  .check.on{background:var(--primary); border-color:var(--primary); display:flex; align-items:center; justify-content:center;}
+
+  /* breadcrumb */
+  .crumb{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--on-surface-variant); padding:2px 4px 8px;}
+  .crumb b{color:var(--on-surface);}
+
+  /* FAB */
+  .fab{position:absolute; right:18px; bottom:84px; width:60px; height:60px; border-radius:18px; background:var(--primary-container); color:var(--on-primary-container); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 14px -4px rgba(33,27,46,.4);}
+
+  /* bottom nav */
+  .nav{height:74px; flex:0 0 auto; background:var(--surface-container); display:flex; align-items:center; justify-content:space-around; padding-bottom:8px;}
+  .nav .item{display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--on-surface-variant); font-size:11px; font-weight:600;}
+  .nav .pill{width:60px; height:30px; border-radius:999px; display:flex; align-items:center; justify-content:center; color:var(--on-surface-variant);}
+  .nav .item.on .pill{background:var(--secondary-container); color:var(--on-secondary-container);}
+  .nav .item.on{color:var(--on-surface);}
+
+  /* dialog */
+  .scrim{position:absolute; inset:0; background:rgba(20,16,28,.40);}
+  .dialog{position:absolute; left:18px; right:18px; top:120px; background:var(--surface-container-high); border-radius:28px; padding:24px; box-shadow:0 18px 50px -10px rgba(0,0,0,.5);}
+  .dialog .dico{width:34px; height:34px; color:var(--primary); margin:0 auto 12px;}
+  .dialog h3{text-align:center; font-size:20px; font-weight:600; margin-bottom:8px;}
+  .dialog p{font-size:13.5px; line-height:1.45; color:var(--on-surface-variant); text-align:center; margin-bottom:14px;}
+  .fp{background:var(--surface); border:1px solid var(--outline-variant); border-radius:12px; padding:12px; font-family:ui-monospace,Menlo,monospace; font-size:12.5px; word-break:break-all; color:var(--on-surface); margin-bottom:6px;}
+  .fpmeta{font-size:11px; color:var(--on-surface-variant); text-align:center; margin-bottom:18px;}
+  .dialog .acts{display:flex; justify-content:flex-end; gap:8px;}
+  .tbtn{padding:10px 16px; border-radius:999px; font-size:14px; font-weight:600; color:var(--primary);}
+  .tbtn.danger{color:var(--error);}
+  .tbtn.fill{background:var(--primary); color:#fff;}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="lhs">
+      <div class="kicker">sftping · feature 001</div>
+      <div class="title">Connect &amp; Browse — UI mockup</div>
+      <div class="sub">Material 3 · baseline purple palette (dynamic color on device). Light theme shown.</div>
+    </div>
+    <div class="legend">
+      <div class="swatch"><span class="dot" style="background:#6650A4"></span>Primary</div>
+      <div class="swatch"><span class="dot" style="background:#EADDFF"></span>Container</div>
+      <div class="swatch"><span class="dot" style="background:#E8DEF8"></span>Secondary</div>
+      <div class="swatch"><span class="dot" style="background:#B3261E"></span>Error</div>
+    </div>
+  </div>
+
+  <div class="row">
+
+    <!-- FRAME 1: CONNECTION -->
+    <div class="frameWrap">
+      <div class="phone">
+        <div class="status">
+          <span>9:41</span>
+          <span class="sig">
+            <svg width="16" height="11" viewBox="0 0 16 11"><rect x="0" y="7" width="3" height="4" rx="1" fill="#1C1B1F"/><rect x="4.3" y="4.5" width="3" height="6.5" rx="1" fill="#1C1B1F"/><rect x="8.6" y="2" width="3" height="9" rx="1" fill="#1C1B1F"/><rect x="12.9" y="0" width="3" height="11" rx="1" fill="#1C1B1F"/></svg>
+            <svg width="22" height="11" viewBox="0 0 22 11"><rect x="0.5" y="0.5" width="18" height="10" rx="2.5" fill="none" stroke="#1C1B1F"/><rect x="2" y="2" width="13" height="7" rx="1" fill="#1C1B1F"/><rect x="19.5" y="3.5" width="1.6" height="4" rx="0.8" fill="#1C1B1F"/></svg>
+          </span>
+        </div>
+        <div class="appbar">
+          <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></div>
+          <div class="t">New connection</div>
+        </div>
+        <div class="body">
+          <div class="recent">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-7 3.5M3 4v4h4"/></svg>
+            <span class="host">192.168.1.10</span><span class="sp"></span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="two">
+            <div class="field focus grow"><div class="lbl">Host</div><div class="val mono">192.168.1.10</div></div>
+            <div class="field"><div class="lbl">Port</div><div class="val mono">22</div></div>
+          </div>
+          <div class="field"><div class="lbl">Username</div><div class="val">root</div></div>
+          <div class="seg">
+            <div class="on"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12l5 5L19 6"/></svg>Password</div>
+            <div>Key</div>
+          </div>
+          <div class="field">
+            <div class="lbl">Password</div>
+            <div class="val"><span style="letter-spacing:2px">••••••••••</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+          </div>
+          <div class="swrow">
+            <div class="txt"><b>Save credentials</b><p>Encrypted with Android Keystore</p></div>
+            <div class="switch"></div>
+          </div>
+          <div class="btn">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+            Connect
+          </div>
+        </div>
+      </div>
+      <div class="caption">Connection <span>· host / port / auth · recent</span></div>
+    </div>
+
+    <!-- FRAME 2: HOST KEY DIALOG -->
+    <div class="frameWrap">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="sig">
+          <svg width="16" height="11" viewBox="0 0 16 11"><rect x="0" y="7" width="3" height="4" rx="1" fill="#1C1B1F"/><rect x="4.3" y="4.5" width="3" height="6.5" rx="1" fill="#1C1B1F"/><rect x="8.6" y="2" width="3" height="9" rx="1" fill="#1C1B1F"/><rect x="12.9" y="0" width="3" height="11" rx="1" fill="#1C1B1F"/></svg>
+        </span></div>
+        <div class="appbar"><div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></div><div class="t" style="opacity:.5">New connection</div></div>
+        <div class="body" style="filter:saturate(.6)"><div class="recent" style="opacity:.45"><span class="host">192.168.1.10</span><span class="sp"></span></div><div class="field" style="opacity:.4"><div class="lbl">Host</div><div class="val mono">192.168.1.10</div></div></div>
+        <div class="scrim"></div>
+        <div class="dialog">
+          <div class="dico"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#6650A4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 11-4.5-2.5-8-6-8-11V5l8-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+          <h3>Verify host key</h3>
+          <p>First time connecting to <b>192.168.1.10</b>. Confirm the server's fingerprint before trusting it.</p>
+          <div class="fp">SHA256:Xr4tP9aK2nQ8sLz0bWv1cE7gHj5mR3yU6oD4fN2qK9c</div>
+          <div class="fpmeta">ssh-ed25519 · 256-bit</div>
+          <div class="acts"><div class="tbtn danger">Reject</div><div class="tbtn fill">Trust &amp; connect</div></div>
+        </div>
+      </div>
+      <div class="caption">Host-key verification <span>· TOFU · SHA-256</span></div>
+    </div>
+
+    <!-- FRAME 3: FILE BROWSER -->
+    <div class="frameWrap">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="sig">
+          <svg width="16" height="11" viewBox="0 0 16 11"><rect x="0" y="7" width="3" height="4" rx="1" fill="#1C1B1F"/><rect x="4.3" y="4.5" width="3" height="6.5" rx="1" fill="#1C1B1F"/><rect x="8.6" y="2" width="3" height="9" rx="1" fill="#1C1B1F"/><rect x="12.9" y="0" width="3" height="11" rx="1" fill="#1C1B1F"/></svg>
+        </span></div>
+        <div class="appbar">
+          <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></div>
+          <div class="t">Files<small>root@192.168.1.10</small></div>
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7M21 3v5h-5"/></svg></div>
+          <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="#49454F"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div>
+        </div>
+        <div class="body">
+          <div class="crumb">home <span>/</span> <b>ops</b></div>
+          <div class="listItem"><div class="leadicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div><div class="li-main"><div class="n">backups</div><div class="s">Folder · Apr 12 09:30</div></div><div class="chev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div></div>
+          <div class="listItem"><div class="leadicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div><div class="li-main"><div class="n">logs</div><div class="s">Folder · Apr 11 18:02</div></div><div class="chev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div></div>
+          <div class="listItem"><div class="leadicon file"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg></div><div class="li-main"><div class="n">release-2026.04.mp4</div><div class="s"><span class="mono">1.4 GB</span> · Apr 10 22:14</div></div></div>
+          <div class="listItem"><div class="leadicon file"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></div><div class="li-main"><div class="n">deploy.sh</div><div class="s"><span class="mono">2.1 KB</span> · Apr 09 18:02</div></div></div>
+          <div class="listItem"><div class="leadicon file"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6l2 2h6a2 2 0 0 1 2 2z"/><path d="M12 11v5M9.5 13.5h5"/></svg></div><div class="li-main"><div class="n">db-dump.tar.gz</div><div class="s"><span class="mono">318 MB</span> · Apr 08 03:00</div></div></div>
+        </div>
+        <div class="fab"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        <div class="nav">
+          <div class="item"><div class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></div>Connect</div>
+          <div class="item on"><div class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div>Files</div>
+          <div class="item"><div class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg></div>Transfers</div>
+        </div>
+      </div>
+      <div class="caption">File browser <span>· size · modified · type</span></div>
+    </div>
+
+    <!-- FRAME 4: MULTI-SELECT -->
+    <div class="frameWrap">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="sig">
+          <svg width="16" height="11" viewBox="0 0 16 11"><rect x="0" y="7" width="3" height="4" rx="1" fill="#1C1B1F"/><rect x="4.3" y="4.5" width="3" height="6.5" rx="1" fill="#1C1B1F"/><rect x="8.6" y="2" width="3" height="9" rx="1" fill="#1C1B1F"/><rect x="12.9" y="0" width="3" height="11" rx="1" fill="#1C1B1F"/></svg>
+        </span></div>
+        <div class="appbar ctr">
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D192B" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+          <div class="t" style="font-size:17px">2 selected</div>
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D192B" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg></div>
+          <div class="ico dis"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D192B" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"/></svg></div>
+          <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D192B" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></div>
+        </div>
+        <div class="body">
+          <div class="crumb">home <span>/</span> <b>ops</b></div>
+          <div class="listItem"><div class="leadicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div><div class="li-main"><div class="n">backups</div><div class="s">Folder · Apr 12 09:30</div></div><div class="check"></div></div>
+          <div class="listItem"><div class="leadicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div><div class="li-main"><div class="n">logs</div><div class="s">Folder · Apr 11 18:02</div></div><div class="check"></div></div>
+          <div class="listItem sel"><div class="leadicon file"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg></div><div class="li-main"><div class="n">release-2026.04.mp4</div><div class="s"><span class="mono">1.4 GB</span> · Apr 10 22:14</div></div><div class="check on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 6"/></svg></div></div>
+          <div class="listItem"><div class="leadicon file"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></div><div class="li-main"><div class="n">deploy.sh</div><div class="s"><span class="mono">2.1 KB</span> · Apr 09 18:02</div></div><div class="check"></div></div>
+          <div class="listItem sel"><div class="leadicon file"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6l2 2h6a2 2 0 0 1 2 2z"/><path d="M12 11v5M9.5 13.5h5"/></svg></div><div class="li-main"><div class="n">db-dump.tar.gz</div><div class="s"><span class="mono">318 MB</span> · Apr 08 03:00</div></div><div class="check on"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 6"/></svg></div></div>
+        </div>
+        <div class="nav">
+          <div class="item"><div class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></div>Connect</div>
+          <div class="item on"><div class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div>Files</div>
+          <div class="item"><div class="pill"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg></div>Transfers</div>
+        </div>
+      </div>
+      <div class="caption">Multi-select <span>· batch delete / download</span></div>
+    </div>
+
+  </div>
+</body>
+</html>
