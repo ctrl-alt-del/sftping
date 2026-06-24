@@ -4,6 +4,22 @@
 <!-- Tagged: #api #ui #build #security — AI searches by tag -->
 <!-- ⚡ = broke in production / non-negotiable guardrail -->
 
+- ⚡ `#build` Hilt Gradle plugin must be **≥ 2.59.2** for AGP 9.x compatibility. Versions ≤ 2.56.2 crash with
+  "Android BaseExtension not found" because AGP 9 removed the old `BaseExtension` API.
+- ⚡ `#build` KSP versioning is **independent** of Kotlin. For Kotlin 2.2.10, use KSP **2.3.9**, not
+  `2.2.10-1.0.x` (the `<kotlin>-<ksp>` pattern is dead for KSP2).
+- ⚡ `#build` `androidx.core:core-ktx:1.19.0` requires **compileSdk ≥ 37**. If compileSdk is 36, bump it or
+  downgrade core-ktx.
+- ⚡ `#build` `@HiltAndroidApp` Application class name **must not collide** with any composable function or
+  other class in the same package. Renamed `SftpingApp` → `SftpingApplication` after KSP overload conflict.
+- `#build` `org.json` (JSONObject, JSONArray) is an **Android framework class** and is not available in JVM
+  unit tests. Add `org.json:json` as `testImplementation` for JVM test coverage.
+- `#api` JSch `HostKey.getKey()` returns a **base64-encoded String**, not a `ByteArray`. Decode with
+  `java.util.Base64.getDecoder().decode(key)` before computing the SHA-256 fingerprint.
+- `#ui` `viewModel()` from `lifecycle-viewmodel-compose` works with `@HiltViewModel` + `@AndroidEntryPoint`
+  on the Activity — no need for `hilt-navigation-compose` or `hiltViewModel()`.
+- `#ui` ViewModel properties using `by mutableStateOf(...)` need explicit imports:
+  `androidx.compose.runtime.getValue`, `setValue`, `mutableStateOf`.
 - ⚡ `#api` Use the **mwiede JSch fork** (`com.github.mwiede:jsch`, ≥ 0.2.15), never
   `com.jcraft:jsch` (abandoned at 0.1.55, vulnerable to Terrapin / CVE-2023-48795).
 - `#api` JSch resume signatures: download is
@@ -25,11 +41,24 @@
 - `#security` Show host-key fingerprints as **SHA-256** (TOFU), not MD5; never use
   `StrictHostKeyChecking=no` in production.
 - `#build` Tooling is intentionally bleeding-edge (AGP 9.2.1, Kotlin 2.2.10,
-  compileSdk 36, Compose BOM 2025.12.00). Verify Hilt / KSP / Room versions against
+  compileSdk 37, Compose BOM 2025.12.00). Verify Hilt / KSP / Room versions against
   the catalog before trusting web snippets.
 
 ## 🔧 Patterns That Worked
 <!-- Reusable patterns discovered across features -->
+
+- **Post-connect host-key verification**: connect at JSch level first, extract session host key,
+  compute SHA-256 fingerprint, check KnownHostsStore in the app layer. Return a sealed class
+  (`HostKeyResult.Trusted | Unknown | Changed`) to the ViewModel UiState. Decouples JSch from
+  UI threading and avoids JSch's built-in `HostKeyRepository` API.
+- **DataStore + JSON for simple object lists**: serialize/deserialize `List<ConnectionProfile>`
+  as a single `stringPreferencesKey` JSON blob. Avoids Proto DataStore overhead for small,
+  non-binary data.
+- **Credentials outside the profile**: passwords/keys are encrypted and stored separately via
+  `SecretStore` keyed by `host:port:user` ID, not bundled in `ConnectionProfile`. Keeps
+  DataStore records audit-clean (profiles = public, keys = encrypted, stored separately).
+- **ComponentActivity + @AndroidEntryPoint** = enough for `viewModel()` + `@HiltViewModel`.
+  No `hilt-navigation-compose` needed; no NavHost required for tab-based `NavigationSuiteScaffold`.
 
 ## 📐 Architecture Decisions
 <!-- ADRs made during spec-driven development -->
@@ -48,7 +77,16 @@
 
 | File | Touched By | Why |
 |------|-----------|-----|
-| — | — | _(fills in as 001 ships)_ |
+| `SftpingApplication.kt` | 001 | @HiltAndroidApp entry point |
+| `MainActivity.kt` | 001 | App shell, nav, @AndroidEntryPoint |
+| `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003 | Session in 001; transfer methods in 002; resume in 003 |
+| `sftp/RemoteFile.kt`, `HostKeyResult.kt` | 001 | Domain models |
+| `security/Fingerprint.kt`, `KnownHostsStore.kt` | 001 | TOFU; may become DataStore-backed |
+| `security/KeystoreCrypto.kt`, `SecretStore.kt` | 001 | Credential crypto; reusable |
+| `data/connection/ConnectionProfile.kt`, `ConnectionRepository.kt` | 001 | Recent connection persistence |
+| `di/SecurityModule.kt`, `SftpModule.kt` | 001 | Hilt bindings |
+| `ui/connection/` | 001 | Connection form + VM |
+| `ui/files/` | 001, 002 | File browser in 001; upload/delete/rename actions in 002 |
 
 ## 🐛 Common Bugs Fixed
 
