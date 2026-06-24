@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -24,8 +25,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
+import com.example.sftping.ui.connection.ConnectionScreen
+import com.example.sftping.ui.files.FilesScreen
 import com.example.sftping.ui.theme.SftpingTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,10 +43,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @PreviewScreenSizes
 @Composable
 fun SftpingShell() {
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.FILES) }
+    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.CONNECT) }
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
@@ -55,7 +61,15 @@ fun SftpingShell() {
             }
         }
     ) {
-        Placeholder(currentDestination.label)
+        when (currentDestination) {
+            AppDestinations.CONNECT -> ConnectionScreen(
+                onConnected = { currentDestination = AppDestinations.FILES }
+            )
+            AppDestinations.FILES -> FilesScreen(
+                onNavigateToConnection = { currentDestination = AppDestinations.CONNECT }
+            )
+            AppDestinations.TRANSFERS -> Placeholder("Transfers")
+        }
     }
 }
 
@@ -69,7 +83,7 @@ private fun Placeholder(label: String) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "$label",
+                text = label,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
