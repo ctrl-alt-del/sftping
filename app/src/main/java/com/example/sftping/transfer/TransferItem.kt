@@ -12,4 +12,4 @@ data class TransferItem(
 )
 
 enum class TransferDirection { DOWNLOAD, UPLOAD }
-enum class TransferStatus { RUNNING, COMPLETED, FAILED, CANCELLED }
+enum class TransferStatus { RUNNING, PAUSED, COMPLETED, FAILED, CANCELLED }

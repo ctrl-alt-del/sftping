@@ -8,6 +8,9 @@ import com.jcraft.jsch.SftpException as JschSftpException
 import com.jcraft.jsch.SftpProgressMonitor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.util.Vector
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -38,24 +41,19 @@ class JschSftpClient @Inject constructor(
         val stored = knownHosts.get(host)
 
         when {
-            stored == null -> HostKeyResult.Unknown(
-                host = host, fingerprint = fingerprint, keyType = hostKey.type
-            )
+            stored == null -> HostKeyResult.Unknown(host, fingerprint, hostKey.type)
             stored == fingerprint -> {
                 openSftpChannel()
                 HostKeyResult.Trusted
             }
-            else -> HostKeyResult.Changed(
-                host = host, storedFingerprint = stored, presentedFingerprint = fingerprint
-            )
+            else -> HostKeyResult.Changed(host, stored, fingerprint)
         }
     }
 
     override suspend fun trustAndProceed(host: String) = withContext(Dispatchers.IO) {
         val hostKey = session?.hostKey ?: throw SftpException("No session to trust")
         val keyBytes = java.util.Base64.getDecoder().decode(hostKey.key)
-        val fingerprint = Fingerprint.sha256(keyBytes)
-        knownHosts.put(host, fingerprint)
+        knownHosts.put(host, Fingerprint.sha256(keyBytes))
         openSftpChannel()
     }
 
@@ -70,8 +68,7 @@ class JschSftpClient @Inject constructor(
         try {
             @Suppress("UNCHECKED_CAST")
             val entries = ch.ls(path) as Vector<ChannelSftp.LsEntry>
-            entries
-                .filter { !it.filename.matches(Regex("^\\.\\.?$")) }
+            entries.filter { !it.filename.matches(Regex("^\\.\\.?$")) }
                 .map { it.toRemoteFile(path) }
         } catch (e: JschSftpException) {
             throw SftpException("Failed to list files at $path", e)
@@ -86,20 +83,15 @@ class JschSftpClient @Inject constructor(
         val ch = checkChannel()
         try {
             val stat = ch.stat(path)
-            if (stat.isDir) {
-                deleteRecursive(ch, path)
-            } else {
-                ch.rm(path)
-            }
+            if (stat.isDir) deleteRecursive(ch, path) else ch.rm(path)
         } catch (e: JschSftpException) {
             throw SftpException("Failed to delete $path", e)
         }
     }
 
     override suspend fun rename(oldPath: String, newPath: String) = withContext(Dispatchers.IO) {
-        val ch = checkChannel()
         try {
-            ch.rename(oldPath, newPath)
+            checkChannel().rename(oldPath, newPath)
         } catch (e: JschSftpException) {
             throw SftpException("Failed to rename $oldPath", e)
         }
@@ -108,9 +100,8 @@ class JschSftpClient @Inject constructor(
     override suspend fun download(
         remotePath: String, destFilePath: String, onProgress: (Long, Long) -> Unit
     ) = withContext(Dispatchers.IO) {
-        val ch = checkChannel()
         try {
-            ch.get(remotePath, destFilePath, ProgressAdapter(onProgress), ChannelSftp.OVERWRITE)
+            checkChannel().get(remotePath, destFilePath, ProgressAdapter(onProgress), ChannelSftp.OVERWRITE)
         } catch (e: JschSftpException) {
             throw SftpException("Failed to download $remotePath", e)
         }
@@ -119,25 +110,47 @@ class JschSftpClient @Inject constructor(
     override suspend fun upload(
         srcFilePath: String, remotePath: String, onProgress: (Long, Long) -> Unit
     ) = withContext(Dispatchers.IO) {
-        val ch = checkChannel()
         try {
-            ch.put(srcFilePath, remotePath, ProgressAdapter(onProgress), ChannelSftp.OVERWRITE)
+            checkChannel().put(srcFilePath, remotePath, ProgressAdapter(onProgress), ChannelSftp.OVERWRITE)
         } catch (e: JschSftpException) {
             throw SftpException("Failed to upload $srcFilePath", e)
         }
     }
+
     override suspend fun downloadWithResume(
         remotePath: String, destFilePath: String, skip: Long,
         onProgress: (Long, Long) -> Unit
-    ) = notYet()
+    ) = withContext(Dispatchers.IO) {
+        try {
+            checkChannel().get(remotePath, destFilePath, ProgressAdapter(onProgress), ChannelSftp.RESUME)
+        } catch (e: JschSftpException) {
+            throw SftpException("Failed to resume download $remotePath", e)
+        }
+    }
 
     override suspend fun uploadWithResume(
         srcFilePath: String, remotePath: String, skip: Long,
         onProgress: (Long, Long) -> Unit
-    ) = notYet()
+    ) = withContext(Dispatchers.IO) {
+        try {
+            val fis = FileInputStream(File(srcFilePath))
+            fis.skip(skip)
+            fis.use { stream ->
+                checkChannel().put(stream, remotePath, ProgressAdapter(onProgress), ChannelSftp.RESUME)
+            }
+        } catch (e: JschSftpException) {
+            throw SftpException("Failed to resume upload $srcFilePath", e)
+        }
+    }
 
-    private fun notYet(): Nothing = throw UnsupportedOperationException("Not implemented yet")
     private fun checkChannel(): ChannelSftp = channel ?: throw IllegalStateException("Not connected")
+
+    private fun disconnectInternal() {
+        channel?.disconnect()
+        channel = null
+        session?.disconnect()
+        session = null
+    }
 
     private fun deleteRecursive(ch: ChannelSftp, path: String) {
         @Suppress("UNCHECKED_CAST")
@@ -146,11 +159,7 @@ class JschSftpClient @Inject constructor(
             val name = entry.filename
             if (name == "." || name == "..") continue
             val childPath = if (path == "/") "/$name" else "$path/$name"
-            if (entry.attrs.isDir) {
-                deleteRecursive(ch, childPath)
-            } else {
-                ch.rm(childPath)
-            }
+            if (entry.attrs.isDir) deleteRecursive(ch, childPath) else ch.rm(childPath)
         }
         ch.rmdir(path)
     }
@@ -164,13 +173,6 @@ class JschSftpClient @Inject constructor(
         override fun end() {}
     }
 
-    private fun disconnectInternal() {
-        channel?.disconnect()
-        channel = null
-        session?.disconnect()
-        session = null
-    }
-
     companion object {
         fun ChannelSftp.LsEntry.toRemoteFile(parentPath: String): RemoteFile {
             val attrs = attrs
@@ -178,11 +180,7 @@ class JschSftpClient @Inject constructor(
         }
 
         fun makeRemoteFile(
-            parentPath: String,
-            fileName: String,
-            size: Long,
-            mTime: Int,
-            isDir: Boolean
+            parentPath: String, fileName: String, size: Long, mTime: Int, isDir: Boolean
         ): RemoteFile = RemoteFile(
             name = fileName,
             path = if (parentPath == "/") "/$fileName" else "$parentPath/$fileName",

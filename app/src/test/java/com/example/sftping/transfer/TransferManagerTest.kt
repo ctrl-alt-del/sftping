@@ -1,48 +1,72 @@
 package com.example.sftping.transfer
 
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.update
+import com.example.sftping.data.transfer.TransferTask
+import com.example.sftping.data.transfer.TransferTaskDao
+import com.example.sftping.data.transfer.TransferTaskDirection
+import com.example.sftping.data.transfer.TransferTaskStatus
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TransferManagerTest {
 
     @Test
-    fun `add and observe items`() = runTest {
-        val manager = TransferManager()
-        val id = manager.createId()
-        manager.add(
-            TransferItem(id, "test.mp4", "/home/test.mp4", TransferDirection.DOWNLOAD, 1000, 0, TransferStatus.RUNNING)
-        )
-        val items = manager.items.first()
-        assertEquals(1, items.size)
-        assertEquals("test.mp4", items[0].fileName)
+    fun `start creates task and adds to items`() = runTest {
+        val dao = FakeDao()
+        val manager = TransferManager(dao)
+        manager.start("f.txt", "/f.txt", "", 1000, TransferDirection.DOWNLOAD) { _, _ -> }
+        assertEquals(1, manager.items.value.size)
+        assertEquals("f.txt", manager.items.value[0].fileName)
     }
 
     @Test
-    fun `updateProgress updates transferred and total`() = runTest {
-        val manager = TransferManager()
-        val id = manager.createId()
-        manager.add(
-            TransferItem(id, "f", "/f", TransferDirection.UPLOAD, 5000, 0, TransferStatus.RUNNING)
-        )
-        manager.updateProgress(id, 2500, 5000, 1024L)
-        val item = manager.items.first().first()
-        assertEquals(2500L, item.transferredBytes)
-        assertEquals(5000L, item.totalBytes)
-        assertEquals(1024L, item.speed)
+    fun `pause marks item as PAUSED`() = runTest {
+        val dao = FakeDao()
+        val manager = TransferManager(dao)
+        manager.start("f.txt", "/f.txt", "", 1000, TransferDirection.DOWNLOAD) { _, _ -> }
+        manager.pause(1L)
+        assertEquals(TransferStatus.PAUSED, manager.items.value[0].status)
     }
 
     @Test
-    fun `mark completes item`() = runTest {
-        val manager = TransferManager()
-        val id = manager.createId()
-        manager.add(
-            TransferItem(id, "f", "/f", TransferDirection.DOWNLOAD, 3000, 3000, TransferStatus.RUNNING)
-        )
-        manager.mark(id, TransferStatus.COMPLETED)
-        assertEquals(TransferStatus.COMPLETED, manager.items.first().first().status)
+    fun `getTransferred returns saved offset from DAO`() = runTest {
+        val dao = FakeDao()
+        dao.insert(TransferTask(
+            remotePath = "/f", localUri = "", fileName = "f.txt",
+            totalBytes = 1000, transferredBytes = 500,
+            direction = TransferTaskDirection.DOWNLOAD,
+            status = TransferTaskStatus.PAUSED
+        ))
+        val manager = TransferManager(dao)
+        assertEquals(500L, manager.getTransferred(1L))
     }
+}
+
+private class FakeDao : TransferTaskDao {
+    private val tasks = mutableMapOf<Long, TransferTask>()
+    private var nextId = 1L
+
+    override suspend fun insert(task: TransferTask): Long {
+        val id = nextId++
+        tasks[id] = task.copy(id = id)
+        return id
+    }
+
+    override suspend fun updateProgress(id: Long, bytes: Long, status: TransferTaskStatus) {
+        tasks[id]?.let { tasks[id] = it.copy(transferredBytes = bytes) }
+    }
+
+    override suspend fun updateTotal(id: Long, total: Long) {
+        tasks[id]?.let { tasks[id] = it.copy(totalBytes = total) }
+    }
+
+    override suspend fun updateStatus(id: Long, status: TransferTaskStatus) {
+        tasks[id]?.let { tasks[id] = it.copy(status = status) }
+    }
+
+    override suspend fun all(): List<TransferTask> = tasks.values.toList()
+
+    override suspend fun get(id: Long): TransferTask? = tasks[id]
+
+    override suspend fun delete(id: Long) { tasks.remove(id) }
 }

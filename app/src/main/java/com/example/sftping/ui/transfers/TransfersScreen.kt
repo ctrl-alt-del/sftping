@@ -13,13 +13,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,8 +40,8 @@ import com.example.sftping.transfer.TransferStatus
 @Composable
 fun TransfersScreen(viewModel: TransfersViewModel = viewModel()) {
     val items by viewModel.items.collectAsState()
-    val active = items.filter { it.status == TransferStatus.RUNNING }
-    val completed = items.filter { it.status != TransferStatus.RUNNING }
+    val active = items.filter { it.status in listOf(TransferStatus.RUNNING, TransferStatus.PAUSED) }
+    val done = items.filter { it.status !in listOf(TransferStatus.RUNNING, TransferStatus.PAUSED) }
 
     if (items.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -58,14 +59,14 @@ fun TransfersScreen(viewModel: TransfersViewModel = viewModel()) {
             }
             items(active, key = { it.id }) { item -> TransferCard(item) }
         }
-        if (completed.isNotEmpty()) {
+        if (done.isNotEmpty()) {
             item {
                 Spacer(Modifier.height(12.dp))
                 Text("COMPLETED", style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp))
             }
-            items(completed, key = { it.id }) { item -> TransferCard(item) }
+            items(done, key = { it.id }) { item -> TransferCard(item) }
         }
     }
 }
@@ -73,16 +74,15 @@ fun TransfersScreen(viewModel: TransfersViewModel = viewModel()) {
 @Composable
 private fun TransferCard(item: TransferItem) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp, horizontal = 4.dp)
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            val icon = when {
-                item.status == TransferStatus.COMPLETED -> Icons.Filled.Check
-                item.status == TransferStatus.FAILED -> Icons.Filled.Error
-                item.direction == TransferDirection.UPLOAD -> Icons.Filled.Upload
-                else -> Icons.Filled.Download
+            val icon = when (item.status) {
+                TransferStatus.COMPLETED -> Icons.Filled.Check
+                TransferStatus.FAILED -> Icons.Filled.Error
+                TransferStatus.PAUSED -> Icons.Filled.Pause
+                else -> if (item.direction == TransferDirection.UPLOAD) Icons.Filled.Upload
+                        else Icons.Filled.Download
             }
             Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp),
                 tint = when (item.status) {
@@ -98,7 +98,7 @@ private fun TransferCard(item: TransferItem) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        if (item.status == TransferStatus.RUNNING && item.totalBytes > 0) {
+        if (item.status in listOf(TransferStatus.RUNNING, TransferStatus.PAUSED) && item.totalBytes > 0) {
             Spacer(Modifier.height(6.dp))
             LinearProgressIndicator(
                 progress = { item.transferredBytes.toFloat() / item.totalBytes.toFloat() },
@@ -116,6 +116,7 @@ private fun TransferCard(item: TransferItem) {
 
 private fun statusText(item: TransferItem): String = when (item.status) {
     TransferStatus.RUNNING -> "${item.formattedTransferred} of ${item.formattedTotal}"
+    TransferStatus.PAUSED -> "Paused · ${item.formattedTransferred} of ${item.formattedTotal}"
     TransferStatus.COMPLETED -> "Completed"
     TransferStatus.FAILED -> "Failed"
     TransferStatus.CANCELLED -> "Cancelled"

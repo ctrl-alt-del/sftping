@@ -156,22 +156,14 @@ class FilesViewModel @Inject constructor(
             val remotePath = if (uiState.currentPath == "/") "/$fileName"
             else "${uiState.currentPath}/$fileName"
             val cacheFile = copyUriToCache(uri, fileName) ?: return@launch
-            val tid = transferManager.createId()
-            transferManager.add(
-                TransferItem(tid, fileName, remotePath, TransferDirection.UPLOAD, cacheFile.length(), 0, TransferStatus.RUNNING)
-            )
-            try {
-                sftpClient.upload(cacheFile.absolutePath, remotePath) { transferred, total ->
-                    transferManager.updateProgress(tid, transferred, total)
-                }
-                transferManager.mark(tid, TransferStatus.COMPLETED)
-                loadFiles(uiState.currentPath)
-            } catch (e: Exception) {
-                transferManager.mark(tid, TransferStatus.FAILED)
-                uiState = uiState.copy(error = e.message ?: "Upload failed")
-            } finally {
-                cacheFile.delete()
+
+            transferManager.start(fileName, remotePath, uri.toString(), cacheFile.length(),
+                TransferDirection.UPLOAD
+            ) { id, progress ->
+                sftpClient.upload(cacheFile.absolutePath, remotePath, progress)
             }
+            cacheFile.delete()
+            loadFiles(uiState.currentPath)
         }
     }
 
@@ -179,22 +171,14 @@ class FilesViewModel @Inject constructor(
         viewModelScope.launch {
             val fileName = remotePath.substringAfterLast("/")
             val cacheFile = File(context.cacheDir, "sftping_dl_$fileName")
-            val tid = transferManager.createId()
-            transferManager.add(
-                TransferItem(tid, fileName, remotePath, TransferDirection.DOWNLOAD, 0, 0, TransferStatus.RUNNING)
-            )
-            try {
-                sftpClient.download(remotePath, cacheFile.absolutePath) { transferred, total ->
-                    transferManager.updateProgress(tid, transferred, total)
-                }
-                copyCacheToUri(cacheFile, destUri)
-                transferManager.mark(tid, TransferStatus.COMPLETED)
-            } catch (e: Exception) {
-                transferManager.mark(tid, TransferStatus.FAILED)
-                uiState = uiState.copy(error = e.message ?: "Download failed")
-            } finally {
-                cacheFile.delete()
+
+            transferManager.start(fileName, remotePath, destUri.toString(), 0,
+                TransferDirection.DOWNLOAD
+            ) { id, progress ->
+                sftpClient.download(remotePath, cacheFile.absolutePath, progress)
             }
+            copyCacheToUri(cacheFile, destUri)
+            cacheFile.delete()
         }
     }
 
