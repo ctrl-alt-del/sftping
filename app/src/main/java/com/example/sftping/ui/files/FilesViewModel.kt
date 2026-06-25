@@ -156,12 +156,10 @@ class FilesViewModel @Inject constructor(
             val remotePath = if (uiState.currentPath == "/") "/$fileName"
             else "${uiState.currentPath}/$fileName"
             val cacheFile = copyUriToCache(uri, fileName) ?: return@launch
-
-            transferManager.start(fileName, remotePath, uri.toString(), cacheFile.length(),
+            transferManager.enqueue(
+                fileName, remotePath, uri.toString(), cacheFile.length(),
                 TransferDirection.UPLOAD
-            ) { id, progress ->
-                sftpClient.upload(cacheFile.absolutePath, remotePath, progress)
-            }
+            )
             cacheFile.delete()
             loadFiles(uiState.currentPath)
         }
@@ -170,15 +168,10 @@ class FilesViewModel @Inject constructor(
     fun downloadFile(remotePath: String, destUri: Uri) {
         viewModelScope.launch {
             val fileName = remotePath.substringAfterLast("/")
-            val cacheFile = File(context.cacheDir, "sftping_dl_$fileName")
-
-            transferManager.start(fileName, remotePath, destUri.toString(), 0,
+            transferManager.enqueue(
+                fileName, remotePath, destUri.toString(), 0,
                 TransferDirection.DOWNLOAD
-            ) { id, progress ->
-                sftpClient.download(remotePath, cacheFile.absolutePath, progress)
-            }
-            copyCacheToUri(cacheFile, destUri)
-            cacheFile.delete()
+            )
         }
     }
 

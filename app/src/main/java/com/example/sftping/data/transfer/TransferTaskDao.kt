@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TransferTaskDao {
@@ -22,6 +23,9 @@ interface TransferTaskDao {
 
     @Query("SELECT * FROM transfer_tasks ORDER BY last_modified DESC")
     suspend fun all(): List<TransferTask>
+
+    @Query("SELECT * FROM transfer_tasks ORDER BY last_modified DESC")
+    fun observeAll(): Flow<List<TransferTask>>
 
     @Query("SELECT * FROM transfer_tasks WHERE id = :id")
     suspend fun get(id: Long): TransferTask?
