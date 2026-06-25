@@ -175,10 +175,6 @@ class FilesViewModel @Inject constructor(
         }
     }
 
-    private suspend fun loadFilesSafely() {
-        loadFiles(uiState.currentPath)
-    }
-
     fun clearError() { uiState = uiState.copy(error = null) }
 
     private suspend fun copyUriToCache(uri: Uri, fileName: String): File? = withContext(Dispatchers.IO) {
@@ -188,6 +184,11 @@ class FilesViewModel @Inject constructor(
                 FileOutputStream(cacheFile).use { output -> input.copyTo(output) }
             }
             cacheFile
+        } catch (e: SecurityException) {
+            uiState = uiState.copy(
+                error = "Permission to this file has expired. Please re-select it."
+            )
+            null
         } catch (_: Exception) {
             uiState = uiState.copy(error = "Cannot read selected file")
             null
@@ -195,8 +196,14 @@ class FilesViewModel @Inject constructor(
     }
 
     private suspend fun copyCacheToUri(cacheFile: File, destUri: Uri) = withContext(Dispatchers.IO) {
-        context.contentResolver.openOutputStream(destUri)?.use { output ->
-            FileInputStream(cacheFile).use { input -> input.copyTo(output) }
+        try {
+            context.contentResolver.openOutputStream(destUri)?.use { output ->
+                FileInputStream(cacheFile).use { input -> input.copyTo(output) }
+            }
+        } catch (e: SecurityException) {
+            uiState = uiState.copy(
+                error = "Cannot write to destination — permission may have expired."
+            )
         }
     }
 
