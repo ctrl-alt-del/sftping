@@ -33,6 +33,16 @@
 - `#ui` Multi-select in LazyColumn via `combinedClickable`: tap = enter/action, long-press =
   toggle selection. Selection state is a `List<String>` of paths in the ViewModel. The app
   bar switches to a contextual bar when selection is active.
+- `#api` Room's generated suspend DAO functions (e.g. `dao.updateProgress()`) cannot be
+  called from non-suspend callbacks like progress lambdas `(Long, Long) -> Unit`. Wrap
+  them in `scope.launch { dao.updateProgress(...) }` to bridge the gap.
+- `#api` JSch `ChannelSftp.RESUME` handles remote offset automatically: `get(src, dst,
+  monitor, RESUME)` skips `localFile.length()` bytes on the remote; `put(stream, dst,
+  monitor, RESUME)` skips `remoteFile.length()` bytes. However, for upload the
+  `InputStream` should be manually `skip()`ped to avoid re-reading already-uploaded bytes.
+- `#build` `runTest` with `CoroutineScope(Dispatchers.IO)` in the subject under test
+  uses real time for delays — not virtual time. Avoid testing async completion races on
+  real dispatchers; prefer fake scopes or check only initial state.
 - ⚡ `#api` Use the **mwiede JSch fork** (`com.github.mwiede:jsch`, ≥ 0.2.15), never
   `com.jcraft:jsch` (abandoned at 0.1.55, vulnerable to Terrapin / CVE-2023-48795).
 - `#api` JSch resume signatures: download is

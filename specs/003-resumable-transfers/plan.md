@@ -1,7 +1,7 @@
 ---
 feature_id: "003"
 name: "Resumable Transfers"
-status: "📋 Planned"
+status: "✅ Done"
 depends_on: ["002"]
 touches:
   - "app/src/main/java/com/example/sftping/sftp/JschSftpClient.kt"

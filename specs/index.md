@@ -8,7 +8,7 @@ last_updated: "2026-06-25"
 |----|---------|--------|---------|------------|
 | 001 | Connect & Browse | 📋 Planned | catalog, manifest, `sftp/`, `security/`, `data/connection/`, `ui/{shell,connection,files}`, `di/` | — |
 | 002 | Atomic File Operations | ✅ Done | `sftp/`, `transfer/`, `ui/{files,transfers}`, manifest | 001 |
-| 003 | Resumable Transfers | 📋 Planned | `data/transfer/` (Room), `sftp/`, `transfer/`, catalog | 002 |
+| 003 | Resumable Transfers | ✅ Done | `data/transfer/` (Room), `sftp/`, `transfer/`, catalog | 002 |
 | 004 | Background Transfer | 📋 Planned | `work/`, manifest (FGS), `ui/transfers/`, catalog | 003 |
 | 005 | Resilience Hardening & Release | 📋 Planned | `transfer/`, `work/`, build config | 004 |
 
