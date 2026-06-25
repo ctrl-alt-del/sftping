@@ -1,7 +1,7 @@
 ---
 feature_id: "004"
 name: "Background Transfer"
-status: "📋 Planned"
+status: "✅ Done"
 depends_on: ["003"]
 touches:
   - "app/src/main/AndroidManifest.xml"

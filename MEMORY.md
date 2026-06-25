@@ -43,6 +43,11 @@
 - `#build` `runTest` with `CoroutineScope(Dispatchers.IO)` in the subject under test
   uses real time for delays — not virtual time. Avoid testing async completion races on
   real dispatchers; prefer fake scopes or check only initial state.
+- `#build` Room KSP overrides constructor default parameter values in generated code.
+  When constructing Room entities in tests, use **named parameters** or pass all
+  arguments explicitly — positional args with defaults don't work reliably.
+- `#ui` `StateFlow.first()` returns the immediately cached value, not the next emission.
+  To wait for a state change, use `first { predicate }` or `filter { }.first()`.
 - ⚡ `#api` Use the **mwiede JSch fork** (`com.github.mwiede:jsch`, ≥ 0.2.15), never
   `com.jcraft:jsch` (abandoned at 0.1.55, vulnerable to Terrapin / CVE-2023-48795).
 - `#api` JSch resume signatures: download is
