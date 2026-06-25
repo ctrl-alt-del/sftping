@@ -20,6 +20,19 @@
   on the Activity — no need for `hilt-navigation-compose` or `hiltViewModel()`.
 - `#ui` ViewModel properties using `by mutableStateOf(...)` need explicit imports:
   `androidx.compose.runtime.getValue`, `setValue`, `mutableStateOf`.
+- `#ui` `rememberLauncherForActivityResult` closures capture by reference at compose time.
+  **Declare mutable state variables before the launcher** that references them, or the compose
+  compiler will report the variable as uninitialized.
+- `#ui` `withContext(Dispatchers.IO)` is a `suspend` function — any helper that uses it must
+  be `suspend`. A non-suspend `fun` returning `= withContext(...)` will not compile.
+- `#ui` SAF `ContentResolver.query` for `_display_name` can return null on some content
+  providers. Always fall back to `uri.lastPathSegment` for the file name.
+- `#ui` TransferManager + TransfersViewModel pattern: a `@Singleton` state holder publishes
+  `StateFlow<List<TransferItem>>`, wrapped by a thin `@HiltViewModel` for Compose access.
+  Scales naturally to Room-backed persistence in 003.
+- `#ui` Multi-select in LazyColumn via `combinedClickable`: tap = enter/action, long-press =
+  toggle selection. Selection state is a `List<String>` of paths in the ViewModel. The app
+  bar switches to a contextual bar when selection is active.
 - ⚡ `#api` Use the **mwiede JSch fork** (`com.github.mwiede:jsch`, ≥ 0.2.15), never
   `com.jcraft:jsch` (abandoned at 0.1.55, vulnerable to Terrapin / CVE-2023-48795).
 - `#api` JSch resume signatures: download is

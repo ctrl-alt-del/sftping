@@ -1,7 +1,7 @@
 ---
 feature_id: "002"
 name: "Atomic File Operations"
-status: "📋 Planned"
+status: "✅ Done"
 depends_on: ["001"]
 touches:
   - "app/src/main/java/com/example/sftping/sftp/ISftpClient.kt"
