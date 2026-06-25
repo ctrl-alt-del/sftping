@@ -5,6 +5,7 @@ import com.example.sftping.security.KnownHostsStore
 import com.jcraft.jsch.ChannelSftp
 import com.jcraft.jsch.JSch
 import com.jcraft.jsch.SftpException as JschSftpException
+import com.jcraft.jsch.SftpProgressMonitor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Vector
@@ -81,10 +82,50 @@ class JschSftpClient @Inject constructor(
         withContext(Dispatchers.IO) { disconnectInternal() }
     }
 
-    override suspend fun delete(path: String) = notYet()
-    override suspend fun rename(oldPath: String, newPath: String) = notYet()
-    override suspend fun download(remotePath: String, destFilePath: String, onProgress: (Long, Long) -> Unit) = notYet()
-    override suspend fun upload(srcFilePath: String, remotePath: String, onProgress: (Long, Long) -> Unit) = notYet()
+    override suspend fun delete(path: String) = withContext(Dispatchers.IO) {
+        val ch = checkChannel()
+        try {
+            val stat = ch.stat(path)
+            if (stat.isDir) {
+                deleteRecursive(ch, path)
+            } else {
+                ch.rm(path)
+            }
+        } catch (e: JschSftpException) {
+            throw SftpException("Failed to delete $path", e)
+        }
+    }
+
+    override suspend fun rename(oldPath: String, newPath: String) = withContext(Dispatchers.IO) {
+        val ch = checkChannel()
+        try {
+            ch.rename(oldPath, newPath)
+        } catch (e: JschSftpException) {
+            throw SftpException("Failed to rename $oldPath", e)
+        }
+    }
+
+    override suspend fun download(
+        remotePath: String, destFilePath: String, onProgress: (Long, Long) -> Unit
+    ) = withContext(Dispatchers.IO) {
+        val ch = checkChannel()
+        try {
+            ch.get(remotePath, destFilePath, ProgressAdapter(onProgress), ChannelSftp.OVERWRITE)
+        } catch (e: JschSftpException) {
+            throw SftpException("Failed to download $remotePath", e)
+        }
+    }
+
+    override suspend fun upload(
+        srcFilePath: String, remotePath: String, onProgress: (Long, Long) -> Unit
+    ) = withContext(Dispatchers.IO) {
+        val ch = checkChannel()
+        try {
+            ch.put(srcFilePath, remotePath, ProgressAdapter(onProgress), ChannelSftp.OVERWRITE)
+        } catch (e: JschSftpException) {
+            throw SftpException("Failed to upload $srcFilePath", e)
+        }
+    }
     override suspend fun downloadWithResume(
         remotePath: String, destFilePath: String, skip: Long,
         onProgress: (Long, Long) -> Unit
@@ -97,6 +138,31 @@ class JschSftpClient @Inject constructor(
 
     private fun notYet(): Nothing = throw UnsupportedOperationException("Not implemented yet")
     private fun checkChannel(): ChannelSftp = channel ?: throw IllegalStateException("Not connected")
+
+    private fun deleteRecursive(ch: ChannelSftp, path: String) {
+        @Suppress("UNCHECKED_CAST")
+        val entries = ch.ls(path) as Vector<ChannelSftp.LsEntry>
+        for (entry in entries) {
+            val name = entry.filename
+            if (name == "." || name == "..") continue
+            val childPath = if (path == "/") "/$name" else "$path/$name"
+            if (entry.attrs.isDir) {
+                deleteRecursive(ch, childPath)
+            } else {
+                ch.rm(childPath)
+            }
+        }
+        ch.rmdir(path)
+    }
+
+    private class ProgressAdapter(
+        private val onProgress: (Long, Long) -> Unit
+    ) : SftpProgressMonitor {
+        private var max = 0L
+        override fun init(op: Int, src: String?, dest: String?, max: Long) { this.max = max }
+        override fun count(count: Long): Boolean { onProgress(count, max); return true }
+        override fun end() {}
+    }
 
     private fun disconnectInternal() {
         channel?.disconnect()
