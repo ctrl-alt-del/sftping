@@ -28,6 +28,7 @@ import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import com.example.sftping.ui.connection.ConnectionScreen
 import com.example.sftping.ui.files.FilesScreen
 import com.example.sftping.ui.theme.SftpingTheme
+import com.example.sftping.ui.transfers.TransfersScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -68,7 +69,7 @@ fun SftpingShell() {
             AppDestinations.FILES -> FilesScreen(
                 onNavigateToConnection = { currentDestination = AppDestinations.CONNECT }
             )
-            AppDestinations.TRANSFERS -> Placeholder("Transfers")
+            AppDestinations.TRANSFERS -> TransfersScreen()
         }
     }
 }
