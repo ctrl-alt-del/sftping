@@ -1,7 +1,7 @@
 ---
 feature_id: "005"
 name: "Resilience Hardening & Release"
-status: "📋 Planned"
+status: "✅ Done"
 depends_on: ["004"]
 touches:
   - "app/src/main/java/com/example/sftping/transfer/"

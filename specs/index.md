@@ -10,7 +10,7 @@ last_updated: "2026-06-25"
 | 002 | Atomic File Operations | ✅ Done | `sftp/`, `transfer/`, `ui/{files,transfers}`, manifest | 001 |
 | 003 | Resumable Transfers | ✅ Done | `data/transfer/` (Room), `sftp/`, `transfer/`, catalog | 002 |
 | 004 | Background Transfer | ✅ Done | `work/`, manifest (FGS), `ui/transfers/`, catalog | 003 |
-| 005 | Resilience Hardening & Release | 📋 Planned | `transfer/`, `work/`, build config | 004 |
+| 005 | Resilience Hardening & Release | ✅ Done | `transfer/`, `work/`, build config | 004 |
 
 Status: 📋 Planned → 🚧 In Progress → ✅ Done → 📦 Archived
 
