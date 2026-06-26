@@ -10,6 +10,19 @@
   `2.2.10-1.0.x` (the `<kotlin>-<ksp>` pattern is dead for KSP2).
 - ⚡ `#build` `androidx.core:core-ktx:1.19.0` requires **compileSdk ≥ 37**. If compileSdk is 36, bump it or
   downgrade core-ktx.
+- ⚡ `#build` On **API 34+** (targetSdk ≥ 34), every foreground service must declare its type.
+  WorkManager's `ForegroundInfo` constructor **must** pass `FOREGROUND_SERVICE_TYPE_DATA_SYNC` as
+  the third argument, otherwise `InvalidForegroundServiceTypeException: Starting FGS with type none`
+  crashes the app at runtime.
+- ⚡ `#build` WorkManager's bundled `SystemForegroundService` has **no foregroundServiceType** in its
+  library manifest (value `0x00000000`). Even after fixing `ForegroundInfo`, a second crash occurs:
+  `0x00000001 is not a subset of 0x00000000`. Fix by adding a **manifest merge directive**:
+  ```xml
+  <service android:name="androidx.work.impl.foreground.SystemForegroundService"
+      android:foregroundServiceType="dataSync" tools:node="merge" />
+  ```
+  Both fixes are required — `ForegroundInfo` carries the type at runtime, and the manifest
+  declares it at install time.
 - ⚡ `#build` `@HiltAndroidApp` Application class name **must not collide** with any composable function or
   other class in the same package. Renamed `SftpingApp` → `SftpingApplication` after KSP overload conflict.
 - `#build` `org.json` (JSONObject, JSONArray) is an **Android framework class** and is not available in JVM
