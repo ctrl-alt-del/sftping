@@ -97,14 +97,6 @@ class JschSftpClient @Inject constructor(
         }
     }
 
-    override suspend fun getFileSize(path: String): Long = withContext(Dispatchers.IO) {
-        try {
-            checkChannel().stat(path).size.toLong()
-        } catch (e: JschSftpException) {
-            throw SftpException("Failed to get file size for $path", e)
-        }
-    }
-
     override suspend fun download(
         remotePath: String, destFilePath: String, onProgress: (Long, Long) -> Unit
     ) = withContext(Dispatchers.IO) {

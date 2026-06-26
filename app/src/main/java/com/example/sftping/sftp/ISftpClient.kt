@@ -14,7 +14,7 @@ interface ISftpClient {
     suspend fun delete(path: String)
 
     suspend fun rename(oldPath: String, newPath: String)
-    suspend fun getFileSize(path: String): Long
+
     suspend fun download(remotePath: String, destFilePath: String, onProgress: (transferred: Long, total: Long) -> Unit)
 
 
