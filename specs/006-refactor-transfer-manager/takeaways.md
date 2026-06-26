@@ -17,6 +17,10 @@
   for any test path that touches `context.cacheDir`.
 - The `@Binds @Singleton` pattern with `@Inject @Singleton` on the implementation class
   is the standard Hilt binding; no duplicate binding errors arise.
+- ⚡ `callbackFlow` with `awaitClose { }` blocks flow completion indefinitely. For single-shot
+  callbacks (JSch → Flow bridge), use `close()` after the callback-based operation returns.
+  `awaitClose` is for flows that run an indefinitely open listener (e.g., a WebSocket) and
+  need cleanup on cancellation — not for request-response patterns.
 
 ## Patterns Worth Reusing
 - **Strategy + UseCase sandwich**: `Worker → UseCase → Strategy → Transport`. The UseCase

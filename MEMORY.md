@@ -41,6 +41,12 @@
   unit tests. Add `org.json:json` as `testImplementation` for JVM test coverage.
 - `#api` JSch `HostKey.getKey()` returns a **base64-encoded String**, not a `ByteArray`. Decode with
   `java.util.Base64.getDecoder().decode(key)` before computing the SHA-256 fingerprint.
+- ⚡ `#api` `callbackFlow { ... awaitClose { } }` is wrong for single-shot operations like
+  SFTP downloads/uploads. `awaitClose` suspends the producer coroutine **indefinitely** after
+  the operation completes, causing the `collect {}` caller to hang forever. Use `close()`
+  instead — it signals normal channel completion and lets downstream logic proceed. This bug
+  caused: Worker RETRY loops (WorkManager kills the hung worker), TransfersScreen stuck on
+  RUNNING, `dao.updateStatus(COMPLETED)` never reached, and SAF destination never populated.
 - `#ui` `viewModel()` from `lifecycle-viewmodel-compose` works with `@HiltViewModel` + `@AndroidEntryPoint`
   on the Activity — no need for `hilt-navigation-compose` or `hiltViewModel()`.
 - `#ui` ViewModel properties using `by mutableStateOf(...)` need explicit imports:
