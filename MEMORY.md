@@ -23,6 +23,18 @@
   ```
   Both fixes are required — `ForegroundInfo` carries the type at runtime, and the manifest
   declares it at install time.
+- ⚡ `#build` **Cache file lifecycle across ViewModel ↔ Worker boundary**: files written by the
+  ViewModel (from SAF) and consumed by a background Worker must use **identical naming
+  conventions**. Upload: copy SAF → temp cache → `enqueue()` → get taskId → **rename** cache
+  to match the Worker's formula (`sftping_ul_<taskId>_<fileName>`). Download: Worker creates
+  cache at `sftping_dl_<taskId>_<fileName>`; ViewModel computes the same path for post-transfer
+  copy to SAF. Both sides use `task.id` + `task.fileName`.
+- ⚡ `#build` **Never delete cache files before the Worker consumes them**. `cacheFile.delete()`
+  in the ViewModel right after `enqueue()` will cause the Worker to find a missing file,
+  return `Result.failure()` / `Result.retry()`, and the transfer never completes.
+- `#ui` **Transfers are asynchronous** — the ViewModel must observe `TransferManager.items`
+  for `COMPLETED` status on the task ID before refreshing the file list or copying download
+  results. Never assume `enqueue()` completes synchronously.
 - ⚡ `#build` `@HiltAndroidApp` Application class name **must not collide** with any composable function or
   other class in the same package. Renamed `SftpingApp` → `SftpingApplication` after KSP overload conflict.
 - `#build` `org.json` (JSONObject, JSONArray) is an **Android framework class** and is not available in JVM

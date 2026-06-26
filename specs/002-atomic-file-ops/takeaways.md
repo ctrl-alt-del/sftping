@@ -15,6 +15,18 @@
   otherwise the compose compiler sees an uninitialized variable.
 - `withContext(Dispatchers.IO)` is a `suspend` function. A helper function that uses it must be
   `suspend` — a plain `fun` with a `withContext` body will not compile.
+- ⚡ **Cache file lifecycle**: files written by the ViewModel (from SAF) and consumed by a
+  background Worker must use **identical naming conventions** on both sides. The ViewModel
+  copies SAF → temp cache, enqueues the Worker with the task ID, then **renames** the cache
+  to match the Worker's expected path (`sftping_ul_<taskId>_<fileName>`). The Worker computes
+  the same path from `task.id` + `task.fileName`.
+- ⚡ **Do not delete cache before Worker runs**: `cacheFile.delete()` must not happen in the
+  ViewModel after `enqueue()` — the Worker hasn't started yet and will find the file missing.
+  The Worker owns the cache lifecycle and deletes the file after successful transfer.
+- **Asynchronous completion observation**: both upload and download must observe
+  `TransferManager.items` for `COMPLETED` status on the task ID before proceeding with
+  post-transfer actions (refreshing the file list, copying download result to SAF). Never
+  assume the transfer completes synchronously after `enqueue()`.
 - `FloatingActionButton` with the speed-dial pattern works, but the `ExtendedFloatingActionButton`
   text changes between "Add" / "Close" depending on expanded state — the expand/collapse toggle
   feels natural on Android.

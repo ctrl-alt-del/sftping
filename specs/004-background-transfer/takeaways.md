@@ -6,10 +6,21 @@
 - Reactive DAO (`observeAll(): Flow`) combined with `stateIn()` eliminates manual state
   synchronization between Worker writes and TransferManager reads. The DAO is the single
   source of truth.
-- Foreground service with `dataSync` type + notification channel works on targetSdk 36
-  with proper permissions declared in the manifest.
+- After fixing the FGS type declaration, background transfers run reliably even when the
+  app is backgrounded or the screen is off.
 
 ## What We Learned
+- ⚡ **FGS type crash** on API 34+: `ForegroundInfo` must carry
+  `FOREGROUND_SERVICE_TYPE_DATA_SYNC` as the third constructor argument; without it, the OS
+  crashes with `InvalidForegroundServiceTypeException: Starting FGS with type none`.
+- ⚡ **Second FGS crash**: even after fixing `ForegroundInfo`, a manifest merge directive is
+  required because WorkManager's bundled `SystemForegroundService` has no
+  `foregroundServiceType` declared (value `0x00000000`). The OS rejects `dataSync`
+  (0x00000001) as not a subset of the declared types. Fix with:
+  ```xml
+  <service android:name="androidx.work.impl.foreground.SystemForegroundService"
+      android:foregroundServiceType="dataSync" tools:node="merge" />
+  ```
 - `CoroutineWorker`'s `context` parameter shadows the `android.content.Context` import in
   the class body; use `applicationContext` instead to avoid ambiguity or rename the
   constructor parameter.
