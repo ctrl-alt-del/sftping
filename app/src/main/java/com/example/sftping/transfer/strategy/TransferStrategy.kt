@@ -12,6 +12,7 @@ interface TransferStrategy {
     fun upload(
         localPath: String,
         remotePath: String,
+        totalBytes: Long,
         skip: Long = 0L
     ): Flow<TransferProgress>
 }

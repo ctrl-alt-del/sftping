@@ -1,7 +1,19 @@
-# Plan: Refactor TransferManager
+---
+feature_id: "006"
+name: "TransferManager Refactor"
+status: "✅ Done"
+depends_on: ["004"]
+touches:
+  - "app/src/main/java/com/example/sftping/transfer/TransferManager.kt"
+  - "app/src/main/java/com/example/sftping/transfer/TransferItem.kt"
+  - "app/src/main/java/com/example/sftping/transfer/strategy/"
+  - "app/src/main/java/com/example/sftping/transfer/usecase/"
+  - "app/src/main/java/com/example/sftping/work/SftpTransferWorker.kt"
+  - "app/src/main/java/com/example/sftping/di/SftpModule.kt"
+created: "2026-06-26"
+---
 
-## **Feature ID:** 006
-## **Status:** 🚧 In Progress
+# Plan: Refactor TransferManager
 
 ### **Overview**
 Decouple `TransferManager` from protocol-specific logic and business logic using the Strategy and UseCase patterns. This prepares the codebase for multi-protocol support (SCP, FTPS) and an intelligent orchestrator.
