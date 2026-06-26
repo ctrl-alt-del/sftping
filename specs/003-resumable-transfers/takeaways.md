@@ -25,6 +25,11 @@
 - `ChannelSftp.setBufferSize()` doesn't exist in the mwiede JSch fork we're using; the
   buffer size is a connection-level config (`sftp_buffer_size`). We deferred the 1MB
   buffer tuning to later.
+- JSch RESUME mode requires the local destination file to exist — it calls `stat()` on
+  the local file to determine how many bytes to skip on the remote. For a fresh download
+  from scratch (`skip=0`, no previous partial file), the cache file doesn't exist yet,
+  causing `get(..., RESUME)` to throw `SftpException`. Fixed by creating an empty file
+  (`file.createNewFile()`) before the RESUME call.
 
 ## Patterns Worth Reusing
 - **Room-backed state holder**: TransferManager persists task state to Room on every

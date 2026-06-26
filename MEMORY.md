@@ -41,6 +41,10 @@
   unit tests. Add `org.json:json` as `testImplementation` for JVM test coverage.
 - `#api` JSch `HostKey.getKey()` returns a **base64-encoded String**, not a `ByteArray`. Decode with
   `java.util.Base64.getDecoder().decode(key)` before computing the SHA-256 fingerprint.
+- ⚡ `#api` JSch `ChannelSftp.RESUME` mode calls `stat()` on the **local** destination
+  file to determine the byte offset. If the file doesn't exist (fresh download), the
+  `get(..., RESUME)` call throws `SftpException`. Always ensure the local file exists
+  before using RESUME mode: `if (!file.exists()) file.createNewFile()`.
 - ⚡ `#api` `callbackFlow { ... awaitClose { } }` is wrong for single-shot operations like
   SFTP downloads/uploads. `awaitClose` suspends the producer coroutine **indefinitely** after
   the operation completes, causing the `collect {}` caller to hang forever. Use `close()`
