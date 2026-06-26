@@ -67,7 +67,11 @@ class SftpTransferWorker @AssistedInject constructor(
             .setContentIntent(pendingIntent)
             .setProgress(100, 0, true)
             .build()
-        return ForegroundInfo(taskId.toInt(), notification)
+        return ForegroundInfo(
+            taskId.toInt(),
+            notification,
+            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+        )
     }
 
     private fun cancelNotification(taskId: Long) {
