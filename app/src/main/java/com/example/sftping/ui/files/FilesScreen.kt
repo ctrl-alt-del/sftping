@@ -108,7 +108,8 @@ fun FilesScreen(
                         IconButton(
                             onClick = {
                                 downloadTargetPath = state.selectedPaths.firstOrNull()
-                                downloadPicker.launch("downloaded_file")
+                                val suggestedName = downloadTargetPath?.substringAfterLast("/") ?: "file"
+                                downloadPicker.launch(suggestedName)
                             },
                             enabled = state.selectedPaths.size == 1
                         ) { Icon(Icons.Filled.Download, contentDescription = "Download") }
