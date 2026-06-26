@@ -11,7 +11,7 @@ last_updated: "2026-06-26"
 | 003 | Resumable Transfers | ✅ Done | `data/transfer/` (Room), `sftp/`, `transfer/`, catalog | 002 |
 | 004 | Background Transfer | ✅ Done | `work/`, manifest (FGS), `ui/transfers/`, catalog | 003 |
 | 005 | Resilience Hardening & Release | ✅ Done | `transfer/`, `work/`, build config | 004 |
-| 006 | TransferManager Refactor | 🚧 In Progress | `transfer/`, `work/`, `sftp/`, `manager/` | — |
+| 006 | TransferManager Refactor | ✅ Done | `transfer/`, `work/`, `sftp/`, `manager/` | — |
 
 Status: 📋 Planned → 🚧 In Progress → ✅ Done → 📦 Archived
 
