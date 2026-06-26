@@ -34,15 +34,17 @@ class EnqueueUseCase @Inject constructor(
             status = TransferTaskStatus.RUNNING
         )
         val id = dao.insert(task)
-        val workRequest = OneTimeWorkRequestBuilder<com.example.sftping.work.SftpTransferWorker>()
-            .setConstraints(
-                Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.CONNECTED)
-                    .build()
-            )
-            .setInputData(workDataOf("task_id" to id))
-            .build()
-        WorkManager.getInstance(context).enqueue(workRequest)
+        try {
+            val workRequest = OneTimeWorkRequestBuilder<com.example.sftping.work.SftpTransferWorker>()
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build()
+                )
+                .setInputData(workDataOf("task_id" to id))
+                .build()
+            WorkManager.getInstance(context).enqueue(workRequest)
+        } catch (_: IllegalStateException) {}
         return id
     }
 }

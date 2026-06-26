@@ -26,7 +26,7 @@ class ResumeUseCase @Inject constructor(
             .addTag("sftping_transfer_$id")
             .setInputData(workDataOf("task_id" to id))
             .build()
-        WorkManager.getInstance(context).enqueue(workRequest)
+        try { WorkManager.getInstance(context).enqueue(workRequest) } catch (_: IllegalStateException) {}
         dao.updateStatus(id, TransferTaskStatus.RUNNING)
     }
 }

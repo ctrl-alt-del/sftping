@@ -17,6 +17,6 @@ class PauseUseCase @Inject constructor(
 ) {
     suspend fun execute(id: Long) {
         dao.updateStatus(id, TransferTaskStatus.PAUSED)
-        WorkManager.getInstance(context).cancelAllWorkByTag("sftping_transfer_$id")
+        try { WorkManager.getInstance(context).cancelAllWorkByTag("sftping_transfer_$id") } catch (_: IllegalStateException) {}
     }
 }
