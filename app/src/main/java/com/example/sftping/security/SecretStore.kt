@@ -30,7 +30,8 @@ class SecretStore @Inject constructor(
         val ct = prefs[stringPreferencesKey("${id}_data")] ?: return null
         return try {
             crypto.decrypt(SecretData(iv, ct))
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            android.util.Log.w("SecretStore", "Failed to decrypt secret for $id", e)
             null
         }
     }

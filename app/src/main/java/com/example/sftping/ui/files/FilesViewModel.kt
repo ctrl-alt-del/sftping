@@ -185,11 +185,13 @@ class FilesViewModel @Inject constructor(
             }
             cacheFile
         } catch (e: SecurityException) {
+            android.util.Log.w("FilesViewModel", "Stale SAF permission for $uri", e)
             uiState = uiState.copy(
                 error = "Permission to this file has expired. Please re-select it."
             )
             null
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            android.util.Log.e("FilesViewModel", "Failed to copy URI to cache", e)
             uiState = uiState.copy(error = "Cannot read selected file")
             null
         }
@@ -201,9 +203,12 @@ class FilesViewModel @Inject constructor(
                 FileInputStream(cacheFile).use { input -> input.copyTo(output) }
             }
         } catch (e: SecurityException) {
+            android.util.Log.w("FilesViewModel", "Stale SAF permission for destination $destUri", e)
             uiState = uiState.copy(
                 error = "Cannot write to destination — permission may have expired."
             )
+        } catch (e: Exception) {
+            android.util.Log.e("FilesViewModel", "Failed to copy cache to URI", e)
         }
     }
 

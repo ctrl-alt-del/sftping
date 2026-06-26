@@ -43,9 +43,13 @@ class SftpTransferWorker @AssistedInject constructor(
         }
 
         cancelNotification(taskId)
-        return if (result.isSuccess) Result.success() else {
-            dao.updateStatus(taskId, TransferTaskStatus.FAILED)
-            Result.failure()
+        return when {
+            result.isSuccess -> Result.success()
+            result.exceptionOrNull() is com.example.sftping.sftp.SftpException -> {
+                dao.updateStatus(taskId, TransferTaskStatus.FAILED)
+                Result.failure()
+            }
+            else -> Result.retry()
         }
     }
 
