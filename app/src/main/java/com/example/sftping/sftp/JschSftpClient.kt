@@ -123,6 +123,8 @@ class JschSftpClient @Inject constructor(
         onProgress: (Long, Long) -> Unit
     ) = withContext(Dispatchers.IO) {
         try {
+            val file = java.io.File(destFilePath)
+            if (!file.exists()) file.createNewFile()
             checkChannel().get(remotePath, destFilePath, ProgressAdapter(onProgress), ChannelSftp.RESUME)
         } catch (e: JschSftpException) {
             throw SftpException("Failed to resume download $remotePath", e)
