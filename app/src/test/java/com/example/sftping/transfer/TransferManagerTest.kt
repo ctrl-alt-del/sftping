@@ -5,11 +5,14 @@ import com.example.sftping.data.transfer.TransferTask
 import com.example.sftping.data.transfer.TransferTaskDao
 import com.example.sftping.data.transfer.TransferTaskDirection
 import com.example.sftping.data.transfer.TransferTaskStatus
+import com.example.sftping.transfer.usecase.CancelUseCase
+import com.example.sftping.transfer.usecase.EnqueueUseCase
+import com.example.sftping.transfer.usecase.PauseUseCase
+import com.example.sftping.transfer.usecase.ResumeUseCase
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -17,11 +20,16 @@ import org.mockito.kotlin.mock
 
 class TransferManagerTest {
 
+    private val mockEnqueue = mock<EnqueueUseCase>()
+    private val mockPause = mock<PauseUseCase>()
+    private val mockResume = mock<ResumeUseCase>()
+    private val mockCancel = mock<CancelUseCase>()
+
     @Test
     fun `items flow reflects DAO data`() = runTest {
         val dao = FakeDao()
         val context = mock<Context>()
-        val manager = TransferManager(dao, context)
+        val manager = TransferManager(dao, context, mockEnqueue, mockPause, mockResume, mockCancel)
         dao.insert(
             TransferTask(
                 remotePath = "a", fileName = "f.txt",
@@ -37,7 +45,7 @@ class TransferManagerTest {
     fun `getTransferred returns saved offset`() = runTest {
         val dao = FakeDao()
         val context = mock<Context>()
-        val manager = TransferManager(dao, context)
+        val manager = TransferManager(dao, context, mockEnqueue, mockPause, mockResume, mockCancel)
         dao.insert(
             TransferTask(
                 remotePath = "/f", fileName = "f.txt",

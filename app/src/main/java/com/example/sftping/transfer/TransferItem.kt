@@ -1,5 +1,7 @@
 package com.example.sftping.transfer
 
+import com.example.sftping.data.transfer.TransferTaskDirection
+
 data class TransferItem(
     val id: Long,
     val fileName: String,
@@ -11,5 +13,14 @@ data class TransferItem(
     val speed: Long = 0L
 )
 
-enum class TransferDirection { DOWNLOAD, UPLOAD }
+enum class TransferDirection { 
+    DOWNLOAD, 
+    UPLOAD;
+    
+    fun toTaskDirection() = when (this) {
+        DOWNLOAD -> TransferTaskDirection.DOWNLOAD
+        UPLOAD -> TransferTaskDirection.UPLOAD
+    }
+}
+
 enum class TransferStatus { RUNNING, PAUSED, COMPLETED, FAILED, CANCELLED }

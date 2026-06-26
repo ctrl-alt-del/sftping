@@ -13,22 +13,21 @@ import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.example.sftping.MainActivity
 import com.example.sftping.R
-import com.example.sftping.data.transfer.TransferTask
 import com.example.sftping.data.transfer.TransferTaskDao
 import com.example.sftping.data.transfer.TransferTaskDirection
 import com.example.sftping.data.transfer.TransferTaskStatus
-import com.example.sftping.sftp.ISftpClient
-import com.example.sftping.sftp.SftpException
+import com.example.sftping.transfer.usecase.DownloadUseCase
+import com.example.sftping.transfer.usecase.UploadUseCase
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import java.io.File
 
 @HiltWorker
 class SftpTransferWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted params: WorkerParameters,
-    private val sftpClient: ISftpClient,
-    private val dao: TransferTaskDao
+    private val dao: TransferTaskDao,
+    private val downloadUseCase: DownloadUseCase,
+    private val uploadUseCase: UploadUseCase
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
@@ -38,44 +37,16 @@ class SftpTransferWorker @AssistedInject constructor(
         val task = dao.get(taskId) ?: return Result.failure()
         setForeground(createForegroundInfo(taskId, task.fileName))
 
-        return try {
-            when (task.direction) {
-                TransferTaskDirection.DOWNLOAD -> executeDownload(task)
-                TransferTaskDirection.UPLOAD -> executeUpload(task)
-            }
-            dao.updateStatus(taskId, TransferTaskStatus.COMPLETED)
-            cancelNotification(taskId)
-            Result.success()
-        } catch (e: SftpException) {
+        val result = when (task.direction) {
+            TransferTaskDirection.DOWNLOAD -> downloadUseCase.execute(taskId)
+            TransferTaskDirection.UPLOAD -> uploadUseCase.execute(taskId)
+        }
+
+        cancelNotification(taskId)
+        return if (result.isSuccess) Result.success() else {
             dao.updateStatus(taskId, TransferTaskStatus.FAILED)
-            cancelNotification(taskId)
             Result.failure()
-        } catch (_: Exception) {
-            Result.retry()
         }
-    }
-
-    private suspend fun executeDownload(task: TransferTask) {
-        val cacheFile = File(applicationContext.cacheDir, "sftping_wk_${task.id}_${task.fileName}")
-        sftpClient.downloadWithResume(
-            task.remotePath, cacheFile.absolutePath, task.transferredBytes
-        ) { transferred, total ->
-            updateNotification(task.id, task.fileName, transferred, total)
-        }
-        updateNotification(task.id, task.fileName, task.totalBytes, task.totalBytes)
-    }
-
-    private suspend fun executeUpload(task: TransferTask) {
-        val localFile = File(applicationContext.cacheDir, "sftping_wk_${task.id}_${task.fileName}")
-        if (!localFile.exists() || localFile.length() < task.transferredBytes) {
-            throw SftpException("Local file for upload not available")
-        }
-        sftpClient.uploadWithResume(
-            localFile.absolutePath, task.remotePath, task.transferredBytes
-        ) { transferred, total ->
-            updateNotification(task.id, task.fileName, transferred, total)
-        }
-        updateNotification(task.id, task.fileName, task.totalBytes, task.totalBytes)
     }
 
     private fun createForegroundInfo(taskId: Long, fileName: String): ForegroundInfo {
@@ -86,30 +57,13 @@ class SftpTransferWorker @AssistedInject constructor(
         )
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setContentTitle(fileName)
-            .setContentText("Starting…")
+            .setContentText("Transferring…")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setOngoing(true)
             .setContentIntent(pendingIntent)
             .setProgress(100, 0, true)
             .build()
         return ForegroundInfo(taskId.toInt(), notification)
-    }
-
-    private fun updateNotification(taskId: Long, fileName: String, transferred: Long, total: Long) {
-        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setContentTitle(fileName)
-            .setContentText(
-                if (total > 0) "${formatBytes(transferred)} / ${formatBytes(total)}"
-                else formatBytes(transferred)
-            )
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setOngoing(true)
-            .apply {
-                if (total > 0) setProgress(total.toInt(), transferred.toInt(), false)
-            }
-            .build()
-        val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(taskId.toInt(), notification)
     }
 
     private fun cancelNotification(taskId: Long) {
@@ -125,12 +79,6 @@ class SftpTransferWorker @AssistedInject constructor(
             val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nm.createNotificationChannel(channel)
         }
-    }
-
-    private fun formatBytes(bytes: Long): String = when {
-        bytes < 1024 -> "$bytes B"
-        bytes < 1024 * 1024 -> "${"%.1f".format(bytes / 1024.0)} KB"
-        else -> "${"%.1f".format(bytes / (1024.0 * 1024.0))} MB"
     }
 
     companion object {
