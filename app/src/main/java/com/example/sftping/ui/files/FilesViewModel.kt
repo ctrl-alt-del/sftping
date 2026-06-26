@@ -163,7 +163,7 @@ class FilesViewModel @Inject constructor(
             )
 
             // Rename cache to match UploadUseCase naming: sftping_ul_<taskId>_<fileName>
-            val named = java.io.File(context.cacheDir, "sftping_ul_${taskId}_$fileName")
+            val named = File(context.cacheDir, "sftping_ul_${taskId}_$fileName")
             tempFile.renameTo(named)
 
             // Wait for Worker completion, then refresh
@@ -182,10 +182,21 @@ class FilesViewModel @Inject constructor(
     fun downloadFile(remotePath: String, destUri: Uri) {
         viewModelScope.launch {
             val fileName = remotePath.substringAfterLast("/")
-            transferManager.enqueue(
+            val taskId = transferManager.enqueue(
                 fileName, remotePath, destUri.toString(), 0,
                 TransferDirection.DOWNLOAD
             )
+            viewModelScope.launch {
+                transferManager.items.collect { items ->
+                    val item = items.find { it.id == taskId }
+                    if (item != null && item.status == TransferStatus.COMPLETED) {
+                        val cacheFile = File(context.cacheDir, "sftping_dl_${taskId}_${fileName}")
+                        copyCacheToUri(cacheFile, destUri)
+                        cacheFile.delete()
+                        return@collect
+                    }
+                }
+            }
         }
     }
 
