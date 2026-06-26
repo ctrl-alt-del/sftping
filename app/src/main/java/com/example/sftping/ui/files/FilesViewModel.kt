@@ -155,13 +155,27 @@ class FilesViewModel @Inject constructor(
             val fileName = resolveFileName(uri) ?: "uploaded_file"
             val remotePath = if (uiState.currentPath == "/") "/$fileName"
             else "${uiState.currentPath}/$fileName"
-            val cacheFile = copyUriToCache(uri, fileName) ?: return@launch
-            transferManager.enqueue(
-                fileName, remotePath, uri.toString(), cacheFile.length(),
+            val tempFile = copyUriToCache(uri, fileName) ?: return@launch
+
+            val taskId = transferManager.enqueue(
+                fileName, remotePath, tempFile.absolutePath, tempFile.length(),
                 TransferDirection.UPLOAD
             )
-            cacheFile.delete()
-            loadFiles(uiState.currentPath)
+
+            // Rename cache to match UploadUseCase naming: sftping_ul_<taskId>_<fileName>
+            val named = java.io.File(context.cacheDir, "sftping_ul_${taskId}_$fileName")
+            tempFile.renameTo(named)
+
+            // Wait for Worker completion, then refresh
+            viewModelScope.launch {
+                transferManager.items.collect { items ->
+                    val item = items.find { it.id == taskId }
+                    if (item != null && item.status == TransferStatus.COMPLETED) {
+                        loadFiles(uiState.currentPath)
+                        return@collect
+                    }
+                }
+            }
         }
     }
 

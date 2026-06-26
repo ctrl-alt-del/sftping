@@ -44,7 +44,12 @@ class SftpTransferWorker @AssistedInject constructor(
 
         cancelNotification(taskId)
         return when {
-            result.isSuccess -> Result.success()
+            result.isSuccess -> {
+                if (task.direction == TransferTaskDirection.UPLOAD) {
+                    java.io.File(task.localUri).delete()
+                }
+                Result.success()
+            }
             result.exceptionOrNull() is com.example.sftping.sftp.SftpException -> {
                 dao.updateStatus(taskId, TransferTaskStatus.FAILED)
                 Result.failure()
