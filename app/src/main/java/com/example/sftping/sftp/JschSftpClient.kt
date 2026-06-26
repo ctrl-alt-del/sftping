@@ -30,8 +30,9 @@ class JschSftpClient @Inject constructor(
         val jsch = JSch()
         session = jsch.getSession(user, host, port).apply {
             setPassword(password)
-            setConfig("StrictHostKeyChecking", "no")
+            setConfig("StrictHostKeyChecking", "no") // TOFU verification happens post-connect in app layer via KnownHostsStore
             setConfig("PreferredAuthentications", "password,keyboard-interactive")
+            setConfig("sftp_buffer_size", "1048576")
             setServerAliveInterval(30_000)
             connect(10_000)
         }
