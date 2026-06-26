@@ -10,7 +10,8 @@ data class TransferItem(
     val totalBytes: Long,
     val transferredBytes: Long,
     val status: TransferStatus,
-    val speed: Long = 0L
+    val speed: Long = 0L,
+    val lastModified: Long = 0L
 )
 
 enum class TransferDirection { 

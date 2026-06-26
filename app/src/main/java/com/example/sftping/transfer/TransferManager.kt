@@ -55,6 +55,7 @@ private fun com.example.sftping.data.transfer.TransferTask.toTransferItem() = Tr
         com.example.sftping.data.transfer.TransferTaskDirection.UPLOAD -> TransferDirection.UPLOAD
     },
     totalBytes = totalBytes, transferredBytes = transferredBytes,
+    lastModified = lastModified,
     status = when (status) {
         com.example.sftping.data.transfer.TransferTaskStatus.RUNNING -> TransferStatus.RUNNING
         com.example.sftping.data.transfer.TransferTaskStatus.COMPLETED -> TransferStatus.COMPLETED
