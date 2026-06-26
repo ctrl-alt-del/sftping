@@ -42,3 +42,8 @@
 - **Notification as progress UI**: the foreground notification provides updates
   independently of the Compose UI, making it the primary progress channel for background
   transfers. The TransfersScreen is a secondary view.
+- **Swipe + multi-select TransfersScreen**: `ElevatedCard` per transfer row, `SwipeToDismissBox`
+  (EndToStart only) for single-action cancel/delete, `combinedClickable` for long-press
+  multi-select with `Checkbox` trailing, `AnimatedVisibility` for contextual toolbar.
+  Completed rows show `"Completed on yyyy-MM-dd HH:mm:ss"` / `"Failed on ..."`, and
+  tapping opens a detail `AlertDialog` with path, size, direction, and status.

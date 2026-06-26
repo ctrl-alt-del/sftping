@@ -122,6 +122,13 @@
   DataStore records audit-clean (profiles = public, keys = encrypted, stored separately).
 - **ComponentActivity + @AndroidEntryPoint** = enough for `viewModel()` + `@HiltViewModel`.
   No `hilt-navigation-compose` needed; no NavHost required for tab-based `NavigationSuiteScaffold`.
+- **Material 3 swipe + multi-select list management**: `ElevatedCard` per row with
+  `SwipeToDismissBox` (EndToStart only) for single-action cancel/delete. `combinedClickable`
+  for long-press multi-select with `Checkbox` trailing. `selectedIds: Set<Long>` as local
+  `remember` state. Contextual `TopAppBar` with `secondaryContainer` background showing
+  "N selected" + delete action. Completed rows show `"Completed on yyyy-MM-dd HH:mm:ss"`.
+  Tap opens a detail `AlertDialog` with file name, mono-spaced path, size, direction,
+  colored status label, and formatted datetime.
 
 ## 📐 Architecture Decisions
 <!-- ADRs made during spec-driven development -->
