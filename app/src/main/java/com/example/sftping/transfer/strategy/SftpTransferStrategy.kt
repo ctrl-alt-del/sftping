@@ -1,7 +1,6 @@
 package com.example.sftping.transfer.strategy
 
 import com.example.sftping.sftp.ISftpClient
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import javax.inject.Inject
@@ -20,7 +19,7 @@ class SftpTransferStrategy @Inject constructor(
         sftpClient.downloadWithResume(remotePath, localPath, skip) { transferred, total ->
             trySend(TransferProgress(transferred, total))
         }
-        awaitClose { }
+        close()
     }
 
     override fun upload(
@@ -32,6 +31,6 @@ class SftpTransferStrategy @Inject constructor(
         sftpClient.uploadWithResume(localPath, remotePath, skip) { transferred, total ->
             trySend(TransferProgress(transferred, total))
         }
-        awaitClose { }
+        close()
     }
 }
