@@ -75,9 +75,11 @@ Feature Request Received
 
 - **Stack**: Kotlin + Jetpack Compose (Android), single `:app` module.
 - **Package**: `com.example.sftping`. UI entry point: `MainActivity.kt`.
+- **Runtime libs**: Hilt (DI), Room (`sftping.db`), WorkManager (background FGS),
+  DataStore (profiles + secrets), JSch mwiede fork (SFTP), Android Keystore (crypto).
 - **Build system**: Gradle Kotlin DSL with a version catalog
   (`gradle/libs.versions.toml`) — add/bump dependencies there, not inline.
-- Tooling is intentionally bleeding-edge (AGP 9.x, compileSdk 36, Compose BOM
+- Tooling is intentionally bleeding-edge (AGP 9.x, compileSdk 37, Compose BOM
   2025.x). When adding libraries, confirm versions are compatible with the
   catalog rather than copying older snippets from the web.
 

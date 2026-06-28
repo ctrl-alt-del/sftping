@@ -147,18 +147,54 @@
 
 | File | Touched By | Why |
 |------|-----------|-----|
-| `SftpingApplication.kt` | 001 | @HiltAndroidApp entry point |
+| `SftpingApplication.kt` | 001, 004 | @HiltAndroidApp entry point; `Configuration.Provider` for HiltWorkerFactory in 004 |
 | `MainActivity.kt` | 001 | App shell, nav, @AndroidEntryPoint |
 | `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003 | Session in 001; transfer methods in 002; resume in 003 |
 | `sftp/RemoteFile.kt`, `HostKeyResult.kt` | 001 | Domain models |
-| `security/Fingerprint.kt`, `KnownHostsStore.kt` | 001 | TOFU; may become DataStore-backed |
+| `security/Fingerprint.kt`, `KnownHostsStore.kt` | 001 | TOFU; `KnownHostsStore` still in-memory |
 | `security/KeystoreCrypto.kt`, `SecretStore.kt` | 001 | Credential crypto; reusable |
 | `data/connection/ConnectionProfile.kt`, `ConnectionRepository.kt` | 001 | Recent connection persistence |
-| `di/SecurityModule.kt`, `SftpModule.kt` | 001 | Hilt bindings |
+| `data/transfer/TransferTask.kt`, `TransferDatabase.kt`, `TransferTaskDao.kt` | 003 | Room transfer-state persistence (`sftping.db`) |
+| `di/SecurityModule.kt`, `SftpModule.kt` | 001, 006 | Hilt bindings; `TransferStrategy` binding added in 006 |
+| `di/DatabaseModule.kt` | 003 | Room DB + DAO providers |
+| `transfer/TransferItem.kt`, `TransferManager.kt` | 002, 003, 006 | StateFlow holder in 002; Room-backed in 003; thinned to coordinator in 006 |
+| `transfer/strategy/` (`TransferStrategy.kt`, `SftpTransferStrategy.kt`, `TransferProgress.kt`) | 006 | Protocol layer (JSch → `Flow<TransferProgress>`) |
+| `transfer/usecase/` (Enqueue/Download/Upload/Pause/Resume/Cancel) | 003, 006 | Transfer business logic (offsets, retries, persistence) |
+| `work/SftpTransferWorker.kt` | 004, 006 | Background FGS worker; delegates to use cases in 006 |
 | `ui/connection/` | 001 | Connection form + VM |
-| `ui/files/` | 001, 002 | File browser in 001; upload/delete/rename actions in 002 |
+| `ui/files/` | 001, 002 | File browser in 001; upload/download/delete/rename actions in 002 |
+| `ui/transfers/` | 002, 004 | Transfers list, progress, pause/resume/cancel, swipe + multi-select |
 
 ## 🐛 Common Bugs Fixed
+<!-- Real defects hit during development + the fix. See feature takeaways.md for context. -->
+
+- **001** `@HiltAndroidApp` class name collided with an existing `fun SftpingApp()` composable
+  in the same package → KSP overload conflict. Fix: renamed Application to `SftpingApplication`.
+- **001** Host-key fingerprints came out wrong because `HostKey.getKey()` returns a
+  **base64 String**, not bytes. Fix: `Base64.getDecoder().decode(key)` before SHA-256.
+- **001** JVM unit tests failed to resolve `org.json.JSONObject` (Android framework class).
+  Fix: add `org.json:json` as `testImplementation`.
+- **002** Upload Worker found a missing cache file. Two causes: (a) the ViewModel deleted the
+  cache right after `enqueue()`, and (b) ViewModel/Worker used different file names. Fix: the
+  Worker owns the cache lifecycle; ViewModel renames cache to `sftping_ul_<taskId>_<fileName>`.
+- **002** `rememberLauncherForActivityResult` captured an uninitialized variable (closures bind
+  by reference at compose time). Fix: declare mutable state **before** the launcher.
+- **003** Fresh download with `get(..., RESUME)` threw `SftpException` because RESUME `stat()`s a
+  non-existent local file. Fix: `if (!file.exists()) file.createNewFile()` before RESUME.
+- **003** Compose `when` over `TransferStatus` stopped compiling after adding `PAUSED`. Fix:
+  add the exhaustive branches in `statusText()`/icon mapping.
+- **004** ⚡ App crashed at runtime with `InvalidForegroundServiceTypeException: Starting FGS
+  with type none`. Fix: pass `FOREGROUND_SERVICE_TYPE_DATA_SYNC` to `ForegroundInfo`.
+- **004** ⚡ Second FGS crash: `0x00000001 is not a subset of 0x00000000` (WorkManager's
+  `SystemForegroundService` declares no type). Fix: manifest merge directive adding
+  `android:foregroundServiceType="dataSync"` to that service.
+- **004** `CoroutineWorker`'s `context` constructor param shadowed `android.content.Context`.
+  Fix: use `applicationContext` (or rename the param).
+- **006** ⚡ Transfers hung on RUNNING and Workers entered RETRY loops because `callbackFlow`
+  used `awaitClose {}` for a single-shot SFTP op (suspends the producer forever). Fix: call
+  `close()` after the operation returns. `awaitClose` is only for long-lived listeners.
+- **006** `mock<Context>()` returned null `cacheDir`, breaking use-case tests. Fix:
+  `doReturn(realDir).whenever(context).cacheDir`.
 
 ## 🧠 AI Workflow Rule
 
