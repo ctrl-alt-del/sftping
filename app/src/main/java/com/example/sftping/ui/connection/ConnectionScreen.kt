@@ -59,6 +59,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.sftping.data.connection.ConnectionProfile
+import com.example.sftping.security.TrustedHost
 import com.example.sftping.sftp.HostKeyResult
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,7 +81,14 @@ fun ConnectionScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("New connection") })
+            TopAppBar(
+                title = { Text("New connection") },
+                actions = {
+                    IconButton(onClick = { viewModel.openTrustedHosts() }) {
+                        Icon(Icons.Filled.Shield, contentDescription = "Trusted hosts")
+                    }
+                }
+            )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
@@ -174,8 +182,17 @@ fun ConnectionScreen(
     HostKeyDialog(
         result = state.hostKeyResult,
         onTrust = viewModel::trustAndProceed,
-        onReject = viewModel::rejectKey
+        onReject = viewModel::rejectKey,
+        onRevokeAndReverify = viewModel::revokeAndReverify
     )
+
+    if (state.showTrustedHosts) {
+        TrustedHostsDialog(
+            hosts = state.trustedHosts,
+            onRevoke = viewModel::revokeTrustedHost,
+            onDismiss = viewModel::closeTrustedHosts
+        )
+    }
 }
 
 @Composable
@@ -223,7 +240,8 @@ private fun RecentSection(
 private fun HostKeyDialog(
     result: HostKeyResult?,
     onTrust: () -> Unit,
-    onReject: () -> Unit
+    onReject: () -> Unit,
+    onRevokeAndReverify: () -> Unit
 ) {
     when (result) {
         is HostKeyResult.Unknown -> AlertDialog(
@@ -263,6 +281,10 @@ private fun HostKeyDialog(
                         fontFamily = FontFamily.Monospace,
                         style = MaterialTheme.typography.bodySmall
                     )
+                    Spacer(Modifier.height(10.dp))
+                    TextButton(onClick = onRevokeAndReverify) {
+                        Text("Revoke & re-verify")
+                    }
                 }
             },
             confirmButton = { TextButton(onClick = onTrust) { Text("Trust anyway") } },
@@ -271,4 +293,70 @@ private fun HostKeyDialog(
         )
         else -> {}
     }
+}
+
+@Composable
+private fun TrustedHostsDialog(
+    hosts: List<TrustedHost>,
+    onRevoke: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        icon = { Icon(Icons.Filled.Shield, contentDescription = null) },
+        title = { Text("Trusted hosts") },
+        text = {
+            if (hosts.isEmpty()) {
+                Text("No trusted hosts yet.")
+            } else {
+                Column {
+                    hosts.forEach { host ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(host.host, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    host.fingerprint,
+                                    fontFamily = FontFamily.Monospace,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                val meta = buildString {
+                                    if (host.keyType.isNotBlank()) append(host.keyType)
+                                    if (host.trustedAt > 0) {
+                                        if (isNotEmpty()) append(" · ")
+                                        append(
+                                            java.text.SimpleDateFormat(
+                                                "yyyy-MM-dd",
+                                                java.util.Locale.getDefault()
+                                            ).format(java.util.Date(host.trustedAt))
+                                        )
+                                    }
+                                }
+                                if (meta.isNotBlank()) {
+                                    Text(
+                                        meta,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            IconButton(onClick = { onRevoke(host.host) }) {
+                                Icon(
+                                    Icons.Filled.DeleteForever,
+                                    contentDescription = "Revoke ${host.host}",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        onDismissRequest = onDismiss
+    )
 }
