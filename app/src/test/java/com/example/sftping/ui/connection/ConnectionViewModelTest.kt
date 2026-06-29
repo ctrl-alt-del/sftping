@@ -267,4 +267,22 @@ class ConnectionViewModelTest {
 
         assertEquals("/data", vm.uiState.defaultDirectory)
     }
+
+    @Test
+    fun `connect bumps session epoch`() = runTest {
+        doReturn(emptyList<ConnectionProfile>()).`when`(repo).loadRecent()
+        doReturn(emptyList<TrustedHost>()).`when`(knownHostsStore).all()
+        doReturn(HostKeyResult.Trusted).`when`(client).connect(any(), any(), any(), any())
+
+        val before = sessionState.epoch
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
+        vm.updateHost("10.0.0.1")
+        vm.updatePort("22")
+        vm.updateUsername("admin")
+        vm.updatePassword("pw")
+        vm.connect()
+        advanceUntilIdle()
+
+        assertEquals(before + 1, sessionState.epoch)
+    }
 }

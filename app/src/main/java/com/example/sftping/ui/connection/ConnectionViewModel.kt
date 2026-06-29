@@ -150,6 +150,7 @@ class ConnectionViewModel @Inject constructor(
         sessionState.initialDirectory = enteredDir.ifEmpty {
             runCatching { sftpClient.homeDirectory() }.getOrNull()?.ifBlank { null } ?: "/"
         }
+        sessionState.epoch++
         val profile = ConnectionProfile(
             host = uiState.host,
             port = uiState.port.toIntOrNull() ?: 22,
