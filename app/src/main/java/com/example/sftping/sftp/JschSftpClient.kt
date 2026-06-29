@@ -21,7 +21,6 @@ class JschSftpClient @Inject constructor(
 ) : ISftpClient {
 
     private var session: com.jcraft.jsch.Session? = null
-    private var channel: ChannelSftp? = null
 
     override suspend fun connect(
         host: String, port: Int, user: String, password: String?
@@ -43,10 +42,7 @@ class JschSftpClient @Inject constructor(
 
         when {
             stored == null -> HostKeyResult.Unknown(host, fingerprint, hostKey.type)
-            stored == fingerprint -> {
-                openSftpChannel()
-                HostKeyResult.Trusted
-            }
+            stored == fingerprint -> HostKeyResult.Trusted
             else -> HostKeyResult.Changed(host, stored, fingerprint)
         }
     }
@@ -55,25 +51,33 @@ class JschSftpClient @Inject constructor(
         val hostKey = session?.hostKey ?: throw SftpException("No session to trust")
         val keyBytes = java.util.Base64.getDecoder().decode(hostKey.key)
         knownHosts.put(host, Fingerprint.sha256(keyBytes), hostKey.type)
-        openSftpChannel()
     }
 
-    private fun openSftpChannel() {
-        channel = (session?.openChannel("sftp") as? ChannelSftp)?.apply {
-            connect(10_000)
-        } ?: throw SftpException("Failed to open SFTP channel")
+    // ChannelSftp is not thread-safe: open a fresh channel per operation over the shared
+    // session and close it in finally, so concurrent transfers and UI listing can't
+    // corrupt each other's SFTP request/response stream.
+    private fun openChannel(): ChannelSftp {
+        val s = session ?: throw IllegalStateException("Not connected")
+        return try {
+            (s.openChannel("sftp") as ChannelSftp).apply { connect(10_000) }
+        } catch (e: Exception) {
+            throw SftpException("Failed to open SFTP channel", e)
+        }
     }
 
     override suspend fun homeDirectory(): String = withContext(Dispatchers.IO) {
+        val ch = openChannel()
         try {
-            checkChannel().home
+            ch.home
         } catch (e: JschSftpException) {
             throw SftpException("Failed to resolve home directory", e)
+        } finally {
+            ch.disconnect()
         }
     }
 
     override suspend fun listFiles(path: String): List<RemoteFile> = withContext(Dispatchers.IO) {
-        val ch = checkChannel()
+        val ch = openChannel()
         try {
             @Suppress("UNCHECKED_CAST")
             val entries = ch.ls(path) as Vector<ChannelSftp.LsEntry>
@@ -81,6 +85,8 @@ class JschSftpClient @Inject constructor(
                 .map { it.toRemoteFile(path) }
         } catch (e: JschSftpException) {
             throw SftpException("Failed to list files at $path", e)
+        } finally {
+            ch.disconnect()
         }
     }
 
@@ -89,40 +95,51 @@ class JschSftpClient @Inject constructor(
     }
 
     override suspend fun delete(path: String) = withContext(Dispatchers.IO) {
-        val ch = checkChannel()
+        val ch = openChannel()
         try {
             val stat = ch.stat(path)
             if (stat.isDir) deleteRecursive(ch, path) else ch.rm(path)
         } catch (e: JschSftpException) {
             throw SftpException("Failed to delete $path", e)
+        } finally {
+            ch.disconnect()
         }
     }
 
     override suspend fun rename(oldPath: String, newPath: String) = withContext(Dispatchers.IO) {
+        val ch = openChannel()
         try {
-            checkChannel().rename(oldPath, newPath)
+            ch.rename(oldPath, newPath)
         } catch (e: JschSftpException) {
             throw SftpException("Failed to rename $oldPath", e)
+        } finally {
+            ch.disconnect()
         }
     }
 
     override suspend fun download(
         remotePath: String, destFilePath: String, onProgress: (Long, Long) -> Unit
     ) = withContext(Dispatchers.IO) {
+        val ch = openChannel()
         try {
-            checkChannel().get(remotePath, destFilePath, ProgressAdapter(onProgress), ChannelSftp.OVERWRITE)
+            ch.get(remotePath, destFilePath, ProgressAdapter(onProgress), ChannelSftp.OVERWRITE)
         } catch (e: JschSftpException) {
             throw SftpException("Failed to download $remotePath", e)
+        } finally {
+            ch.disconnect()
         }
     }
 
     override suspend fun upload(
         srcFilePath: String, remotePath: String, onProgress: (Long, Long) -> Unit
     ) = withContext(Dispatchers.IO) {
+        val ch = openChannel()
         try {
-            checkChannel().put(srcFilePath, remotePath, ProgressAdapter(onProgress), ChannelSftp.OVERWRITE)
+            ch.put(srcFilePath, remotePath, ProgressAdapter(onProgress), ChannelSftp.OVERWRITE)
         } catch (e: JschSftpException) {
             throw SftpException("Failed to upload $srcFilePath", e)
+        } finally {
+            ch.disconnect()
         }
     }
 
@@ -130,12 +147,15 @@ class JschSftpClient @Inject constructor(
         remotePath: String, destFilePath: String, skip: Long,
         onProgress: (Long, Long) -> Unit
     ) = withContext(Dispatchers.IO) {
+        val ch = openChannel()
         try {
             val file = java.io.File(destFilePath)
             if (!file.exists()) file.createNewFile()
-            checkChannel().get(remotePath, destFilePath, ProgressAdapter(onProgress), ChannelSftp.RESUME)
+            ch.get(remotePath, destFilePath, ProgressAdapter(onProgress), ChannelSftp.RESUME)
         } catch (e: JschSftpException) {
             throw SftpException("Failed to resume download $remotePath", e)
+        } finally {
+            ch.disconnect()
         }
     }
 
@@ -143,22 +163,21 @@ class JschSftpClient @Inject constructor(
         srcFilePath: String, remotePath: String, skip: Long,
         onProgress: (Long, Long) -> Unit
     ) = withContext(Dispatchers.IO) {
+        val ch = openChannel()
         try {
             val fis = FileInputStream(File(srcFilePath))
             fis.skip(skip)
             fis.use { stream ->
-                checkChannel().put(stream, remotePath, ProgressAdapter(onProgress), ChannelSftp.RESUME)
+                ch.put(stream, remotePath, ProgressAdapter(onProgress), ChannelSftp.RESUME)
             }
         } catch (e: JschSftpException) {
             throw SftpException("Failed to resume upload $srcFilePath", e)
+        } finally {
+            ch.disconnect()
         }
     }
 
-    private fun checkChannel(): ChannelSftp = channel ?: throw IllegalStateException("Not connected")
-
     private fun disconnectInternal() {
-        channel?.disconnect()
-        channel = null
         session?.disconnect()
         session = null
     }
