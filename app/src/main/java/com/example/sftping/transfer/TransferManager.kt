@@ -6,6 +6,7 @@ import com.example.sftping.transfer.usecase.CancelUseCase
 import com.example.sftping.transfer.usecase.EnqueueUseCase
 import com.example.sftping.transfer.usecase.PauseUseCase
 import com.example.sftping.transfer.usecase.ResumeUseCase
+import com.example.sftping.transfer.usecase.RetryUseCase
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +25,8 @@ class TransferManager @Inject constructor(
     private val enqueueUseCase: EnqueueUseCase,
     private val pauseUseCase: PauseUseCase,
     private val resumeUseCase: ResumeUseCase,
-    private val cancelUseCase: CancelUseCase
+    private val cancelUseCase: CancelUseCase,
+    private val retryUseCase: RetryUseCase
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -44,6 +46,8 @@ class TransferManager @Inject constructor(
     suspend fun resume(id: Long) = resumeUseCase.execute(id)
 
     suspend fun cancel(id: Long) = cancelUseCase.execute(id)
+
+    suspend fun retry(id: Long) = retryUseCase.execute(id)
 
     suspend fun getTransferred(id: Long): Long = dao.get(id)?.transferredBytes ?: 0L
 

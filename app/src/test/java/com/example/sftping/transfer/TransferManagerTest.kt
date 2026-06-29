@@ -9,6 +9,7 @@ import com.example.sftping.transfer.usecase.CancelUseCase
 import com.example.sftping.transfer.usecase.EnqueueUseCase
 import com.example.sftping.transfer.usecase.PauseUseCase
 import com.example.sftping.transfer.usecase.ResumeUseCase
+import com.example.sftping.transfer.usecase.RetryUseCase
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -24,12 +25,13 @@ class TransferManagerTest {
     private val mockPause = mock<PauseUseCase>()
     private val mockResume = mock<ResumeUseCase>()
     private val mockCancel = mock<CancelUseCase>()
+    private val mockRetry = mock<RetryUseCase>()
 
     @Test
     fun `items flow reflects DAO data`() = runTest {
         val dao = FakeDao()
         val context = mock<Context>()
-        val manager = TransferManager(dao, context, mockEnqueue, mockPause, mockResume, mockCancel)
+        val manager = TransferManager(dao, context, mockEnqueue, mockPause, mockResume, mockCancel, mockRetry)
         dao.insert(
             TransferTask(
                 remotePath = "a", fileName = "f.txt",
@@ -45,7 +47,7 @@ class TransferManagerTest {
     fun `getTransferred returns saved offset`() = runTest {
         val dao = FakeDao()
         val context = mock<Context>()
-        val manager = TransferManager(dao, context, mockEnqueue, mockPause, mockResume, mockCancel)
+        val manager = TransferManager(dao, context, mockEnqueue, mockPause, mockResume, mockCancel, mockRetry)
         dao.insert(
             TransferTask(
                 remotePath = "/f", fileName = "f.txt",
@@ -61,7 +63,7 @@ class TransferManagerTest {
     fun `completedUploadPaths returns only completed upload remote paths`() = runTest {
         val dao = FakeDao()
         val context = mock<Context>()
-        val manager = TransferManager(dao, context, mockEnqueue, mockPause, mockResume, mockCancel)
+        val manager = TransferManager(dao, context, mockEnqueue, mockPause, mockResume, mockCancel, mockRetry)
         dao.insert(
             TransferTask(
                 remotePath = "/d/a.txt", fileName = "a.txt", totalBytes = 1, transferredBytes = 1,
