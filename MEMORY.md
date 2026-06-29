@@ -50,6 +50,15 @@
   throws `SftpException`. You can't pre-create the remote file, so **only use RESUME when
   resuming** — route by offset: `skip == 0` → `put(..., OVERWRITE)`; `skip > 0` →
   `put(..., RESUME)`. Never use RESUME unconditionally for uploads.
+- ⚡ `#api` **`ChannelSftp` is not thread-safe.** Never share one channel across concurrent
+  operations — in this app the background transfer workers and the UI (`listFiles`, refresh,
+  navigation, post-upload `loadFiles`) all run on `Dispatchers.IO` against the same
+  `@Singleton` client, so a shared channel desyncs the SFTP request/response stream. Open a
+  **fresh `ChannelSftp` per operation** over the shared `Session` (`session.openChannel("sftp")`
+  → `connect()` → `try { … } finally { ch.disconnect() }`); SSH multiplexes channels safely.
+  Tell-tale of a desync: JSch throws with a **garbage status id and empty message** (e.g.
+  `1936916480` = `0x73730000` = "ss"); a *real* server error has a small status code (3, 4, …)
+  **and** a message.
 - ⚡ `#api` `callbackFlow { ... awaitClose { } }` is wrong for single-shot operations like
   SFTP downloads/uploads. `awaitClose` suspends the producer coroutine **indefinitely** after
   the operation completes, causing the `collect {}` caller to hang forever. Use `close()`
@@ -204,7 +213,7 @@
 | `SftpingApplication.kt` | 001, 004 | @HiltAndroidApp entry point; `Configuration.Provider` for HiltWorkerFactory in 004 |
 | `MainActivity.kt` | 001 | App shell, nav, @AndroidEntryPoint |
 | `security/Fingerprint.kt`, `KnownHostsStore.kt`, `TrustedHost.kt` | 001, 007 | TOFU; `KnownHostsStore` persisted via DataStore (007); `TrustedHost` JSON model (007) |
-| `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003, 007, 008 | Session in 001; transfer methods in 002; resume in 003; persist keyType (007); `homeDirectory()` (008) |
+| `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003, 007, 008 | Session in 001; transfer methods in 002; resume in 003; persist keyType (007); `homeDirectory()` (008); per-operation channel (concurrency fix) |
 | `sftp/SessionState.kt` | 008 | `@Singleton` cross-VM holder for the resolved initial directory (Connect → Files) |
 | `security/KeystoreCrypto.kt`, `SecretStore.kt` | 001 | Credential crypto; reusable |
 | `data/connection/ConnectionProfile.kt`, `ConnectionRepository.kt` | 001, 008 | Recent connection persistence; `defaultDirectory` added in 008 |
@@ -214,7 +223,7 @@
 | `transfer/TransferItem.kt`, `TransferManager.kt` | 002, 003, 006 | StateFlow holder in 002; Room-backed in 003; thinned to coordinator in 006 |
 | `transfer/strategy/` (`TransferStrategy.kt`, `SftpTransferStrategy.kt`, `TransferProgress.kt`) | 006 | Protocol layer (JSch → `Flow<TransferProgress>`) |
 | `transfer/usecase/` (Enqueue/Download/Upload/Pause/Resume/Cancel) | 003, 006 | Transfer business logic (offsets, retries, persistence) |
-| `work/SftpTransferWorker.kt` | 004, 006 | Background FGS worker; delegates to use cases in 006 |
+| `work/SftpTransferWorker.kt` | 004, 006 | Background FGS worker; delegates to use cases in 006; upload success deletes the real cache file (cleanup fix) |
 | `ui/connection/` | 001, 007, 008 | Connection form + VM; trusted-hosts manager + revoke (007); password show/hide + default-directory field (008) |
 | `ui/files/` (incl. `FileView.kt`) | 001, 002, 008, 009 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009) |
 | `ui/transfers/` | 002, 004 | Transfers list, progress, pause/resume/cancel, swipe + multi-select |
@@ -255,6 +264,14 @@
   003 download-RESUME bug); the real cause was swallowed (no log). Fix: route by offset in
   the strategy — `skip == 0` → `sftpClient.upload` (OVERWRITE), `skip > 0` → `uploadWithResume`
   (RESUME); plus `Log.e` the exception in `Upload/DownloadUseCase`.
+- **fix (concurrency)** ⚡ The 2nd of two uploads failed with a JSch garbage-status
+  `SftpException` (`1936916480` = `0x73730000`, empty message) because `JschSftpClient` shared
+  **one `ChannelSftp`** across concurrent transfers + UI `listFiles` (non-thread-safe → SFTP
+  stream desync). Fix: open a **fresh sftp channel per operation** over the shared session and
+  disconnect it in `finally`; `connect()`/`trustAndProceed()` no longer keep a persistent
+  channel. Also fixed an upload cache leak: the worker's success cleanup deleted the stale
+  pre-rename `task.localUri`; now it deletes the real cache file
+  `sftping_ul_<id>_<name>`.
 
 ## 🧠 AI Workflow Rule
 
