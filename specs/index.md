@@ -17,6 +17,7 @@ last_updated: "2026-06-29"
 | 009 | Files Page: Hidden Toggle, Sort & Search | ✅ Done | `ui/files/` | 001 |
 | 010 | Files Page: Remember Last Visited Path | ✅ Done | `sftp/`, `ui/connection/`, `ui/files/` | 008 |
 | 011 | Batch Transfers & Uploaded-File Memory | ✅ Done | `ui/files/`, `transfer/`, catalog, `app/build.gradle.kts` | 002, 008 |
+| 012 | Retry Failed Upload | ✅ Done | `transfer/`, `ui/transfers/` | 002 |
 
 Status: 📋 Planned → 🚧 In Progress → ✅ Done → 📦 Archived
 

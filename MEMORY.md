@@ -192,6 +192,13 @@
   as `TransferManager.completedUploadPaths()`). No new table — `transfer_tasks` already
   persists every transfer. Key the badge by target remote path (`currentDir/name`), so it
   means "uploaded into this folder."
+- **Per-item retry via re-enqueue + offset reset**: retrying a FAILED upload reuses the
+  resume machinery (re-enqueue a `OneTimeWorkRequest` tagged `sftping_transfer_<id>` with
+  `task_id`) but first `dao.updateProgress(id, 0, RUNNING)` to reset the offset → the worker
+  re-reads the still-present cache and re-uploads with OVERWRITE (not RESUME); status →
+  RUNNING so the row returns to ACTIVE. Gated to FAILED+UPLOAD — an upload's cache
+  (`sftping_ul_<id>_<name>`) persists on failure (the worker deletes it only on success),
+  but a download's cache→SAF copy is UI-driven, so download retry from Transfers isn't safe.
 - **ComponentActivity + @AndroidEntryPoint** = enough for `viewModel()` + `@HiltViewModel`.
   No `hilt-navigation-compose` needed; no NavHost required for tab-based `NavigationSuiteScaffold`.
 - **Material 3 swipe + multi-select list management**: `ElevatedCard` per row with
@@ -233,6 +240,9 @@
   The Upload selection sheet — not the un‑annotatable system picker — carries the
   indication. Batch transfer completion is observed with `.first { predicate }` on the DAO
   flow rather than raw `collect`.
+- ADR-011: Retry of a failed upload re-enqueues the existing task (resume mechanics) after
+  resetting `transferredBytes` to 0 (fresh OVERWRITE, avoiding RESUME-on-fresh). Scoped to
+  uploads — downloads need a live SAF-copy step the Transfers page can't replicate.
 
 ## 📂 Code Ownership Map
 
@@ -248,13 +258,13 @@
 | `data/transfer/TransferTask.kt`, `TransferDatabase.kt`, `TransferTaskDao.kt` | 003 | Room transfer-state persistence (`sftping.db`) |
 | `di/SecurityModule.kt`, `SftpModule.kt` | 001, 006, 007 | Hilt bindings; `TransferStrategy` binding added in 006; KnownHostsStore→DataStore bind (007) |
 | `di/DatabaseModule.kt` | 003 | Room DB + DAO providers |
-| `transfer/TransferItem.kt`, `TransferManager.kt` | 002, 003, 006, 011 | StateFlow holder in 002; Room-backed in 003; thinned to coordinator in 006; `completedUploadPaths` for uploaded-file memory (011) |
+| `transfer/TransferItem.kt`, `TransferManager.kt` | 002, 003, 006, 011, 012 | StateFlow holder in 002; Room-backed in 003; thinned to coordinator in 006; `completedUploadPaths` for uploaded-file memory (011); `retry()` (012) |
 | `transfer/strategy/` (`TransferStrategy.kt`, `SftpTransferStrategy.kt`, `TransferProgress.kt`) | 006 | Protocol layer (JSch → `Flow<TransferProgress>`) |
-| `transfer/usecase/` (Enqueue/Download/Upload/Pause/Resume/Cancel) | 003, 006 | Transfer business logic (offsets, retries, persistence) |
+| `transfer/usecase/` (Enqueue/Download/Upload/Pause/Resume/Cancel/Retry) | 003, 006, 012 | Transfer business logic (offsets, retries, persistence); `RetryUseCase` for failed uploads (012) |
 | `work/SftpTransferWorker.kt` | 004, 006 | Background FGS worker; delegates to use cases in 006; upload success deletes the real cache file (cleanup fix) |
 | `ui/connection/` | 001, 007, 008, 010 | Connection form + VM; trusted-hosts manager + revoke (007); password show/hide + default-directory field (008); bumps `SessionState.epoch` on connect (010) |
 | `ui/files/` (incl. `FileView.kt`, `UploadCandidate.kt`) | 001, 002, 008, 009, 010, 011 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009); `onEnterScreen` remembers last path across tab switches (010); batch upload sheet + multi-download + uploaded memory (011) |
-| `ui/transfers/` | 002, 004 | Transfers list, progress, pause/resume/cancel, swipe + multi-select |
+| `ui/transfers/` | 002, 004, 012 | Transfers list, progress, pause/resume/cancel, swipe + multi-select; retry failed uploads (012) |
 
 ## 🐛 Common Bugs Fixed
 <!-- Real defects hit during development + the fix. See feature takeaways.md for context. -->

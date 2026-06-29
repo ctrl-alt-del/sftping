@@ -29,7 +29,7 @@ resumable, pausable, background transfers.
 - **Background transfers.** Each transfer runs in a WorkManager `dataSync`
   foreground service with a live progress notification, surviving app
   backgrounding and screen-off.
-- **Pause / resume / cancel** from the Transfers screen.
+- **Pause / resume / cancel** from the Transfers screen, and **retry a failed upload** individually.
 - **Encrypted credentials at rest.** Passwords are sealed with an
   **Android Keystore** AES-256-GCM key and stored as ciphertext in DataStore,
   separate from the (non-secret) connection profile.
