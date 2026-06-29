@@ -25,6 +25,8 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -70,6 +72,7 @@ fun ConnectionScreen(
 ) {
     val state = viewModel.uiState
     val snackbarHostState = remember { SnackbarHostState() }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.navigateToFiles.collect { onConnected() }
@@ -134,9 +137,30 @@ fun ConnectionScreen(
                 onValueChange = viewModel::updatePassword,
                 label = { Text(if (state.useKeyAuth) "Private key path" else "Password") },
                 singleLine = true,
-                visualTransformation = if (state.useKeyAuth) VisualTransformation.None
+                visualTransformation = if (state.useKeyAuth || passwordVisible) VisualTransformation.None
                     else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                trailingIcon = {
+                    if (!state.useKeyAuth) {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) Icons.Filled.VisibilityOff
+                                    else Icons.Filled.Visibility,
+                                contentDescription = if (passwordVisible) "Hide password"
+                                    else "Show password"
+                            )
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(
+                value = state.defaultDirectory,
+                onValueChange = viewModel::updateDefaultDirectory,
+                label = { Text("Default directory (optional)") },
+                placeholder = { Text("Defaults to home directory") },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(14.dp))
