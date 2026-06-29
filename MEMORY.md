@@ -178,6 +178,20 @@
   connect) to distinguish a **new connection** (→ reset to initial dir, clear back-stack) from
   **returning to the tab** (→ reload the last `currentPath`). Don't reset screen state blindly
   in `LaunchedEffect`.
+- **Batch upload via SAF multi-pick + in-app selection sheet**: `OpenMultipleDocuments`
+  returns `List<Uri>`; after picking, show an in‑app "Upload selection" sheet that resolves
+  names/sizes, marks already‑uploaded files (by completed‑upload history keyed to
+  `currentDir/name`), and lets the user toggle which ones to upload. `enqueueUpload` wraps
+  the per‑file copy‑to‑cache / enqueue / rename; batch completion is observed with
+  `.first { allTerminal(ids) }` (this also fixes the old `return@collect` observer leak).
+  For multi‑download, select files and pick a destination folder (`OpenDocumentTree` +
+  `DocumentFile.createFile`), then enqueue + observe completion per file with the same
+  `first { … }` pattern.
+- **Reuse completed UPLOAD history for "already uploaded" memory**: derive the set of
+  previously‑uploaded remote paths from `dao.all()` filtered to UPLOAD+COMPLETED (exposed
+  as `TransferManager.completedUploadPaths()`). No new table — `transfer_tasks` already
+  persists every transfer. Key the badge by target remote path (`currentDir/name`), so it
+  means "uploaded into this folder."
 - **ComponentActivity + @AndroidEntryPoint** = enough for `viewModel()` + `@HiltViewModel`.
   No `hilt-navigation-compose` needed; no NavHost required for tab-based `NavigationSuiteScaffold`.
 - **Material 3 swipe + multi-select list management**: `ElevatedCard` per row with
@@ -214,6 +228,11 @@
 - ADR-009: Detect a new connection via a `SessionState.epoch` bumped on each connect (not by
   comparing `initialDirectory`, which can repeat across hosts). Files reloads the last
   `currentPath` on same-session tab re-entry and resets to `initialDirectory` on epoch change.
+- ADR-010: "Already uploaded" memory derives from completed UPLOAD `transfer_tasks` records
+  keyed by remote path, rather than tracking local file identity (SAF URIs aren't stable).
+  The Upload selection sheet — not the un‑annotatable system picker — carries the
+  indication. Batch transfer completion is observed with `.first { predicate }` on the DAO
+  flow rather than raw `collect`.
 
 ## 📂 Code Ownership Map
 
@@ -229,12 +248,12 @@
 | `data/transfer/TransferTask.kt`, `TransferDatabase.kt`, `TransferTaskDao.kt` | 003 | Room transfer-state persistence (`sftping.db`) |
 | `di/SecurityModule.kt`, `SftpModule.kt` | 001, 006, 007 | Hilt bindings; `TransferStrategy` binding added in 006; KnownHostsStore→DataStore bind (007) |
 | `di/DatabaseModule.kt` | 003 | Room DB + DAO providers |
-| `transfer/TransferItem.kt`, `TransferManager.kt` | 002, 003, 006 | StateFlow holder in 002; Room-backed in 003; thinned to coordinator in 006 |
+| `transfer/TransferItem.kt`, `TransferManager.kt` | 002, 003, 006, 011 | StateFlow holder in 002; Room-backed in 003; thinned to coordinator in 006; `completedUploadPaths` for uploaded-file memory (011) |
 | `transfer/strategy/` (`TransferStrategy.kt`, `SftpTransferStrategy.kt`, `TransferProgress.kt`) | 006 | Protocol layer (JSch → `Flow<TransferProgress>`) |
 | `transfer/usecase/` (Enqueue/Download/Upload/Pause/Resume/Cancel) | 003, 006 | Transfer business logic (offsets, retries, persistence) |
 | `work/SftpTransferWorker.kt` | 004, 006 | Background FGS worker; delegates to use cases in 006; upload success deletes the real cache file (cleanup fix) |
 | `ui/connection/` | 001, 007, 008, 010 | Connection form + VM; trusted-hosts manager + revoke (007); password show/hide + default-directory field (008); bumps `SessionState.epoch` on connect (010) |
-| `ui/files/` (incl. `FileView.kt`) | 001, 002, 008, 009, 010 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009); `onEnterScreen` remembers last path across tab switches (010) |
+| `ui/files/` (incl. `FileView.kt`, `UploadCandidate.kt`) | 001, 002, 008, 009, 010, 011 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009); `onEnterScreen` remembers last path across tab switches (010); batch upload sheet + multi-download + uploaded memory (011) |
 | `ui/transfers/` | 002, 004 | Transfers list, progress, pause/resume/cancel, swipe + multi-select |
 
 ## 🐛 Common Bugs Fixed

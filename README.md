@@ -19,8 +19,9 @@ resumable, pausable, background transfers.
 - **Remote file browser** with folder navigation, **multi-select** (tap to enter,
   long-press to select), **search**, **sort** (name A–Z/Z–A, size, last modified),
   and a **hidden-file toggle**. Returns to your last folder when you switch tabs.
-- **Upload & download via the Storage Access Framework** — pick a document to
-  upload, choose a destination to save a download.
+- **Upload & download via the Storage Access Framework** — pick multiple documents
+  to upload at once (with an in-app confirmation sheet that flags
+  already-uploaded files), or select a destination folder for multi-download.
 - **Convenient connect form.** Show/hide the password, and set an optional default
   directory (defaults to the host's home) that the file browser opens on connect.
 - **Resumable transfers.** Byte offsets are persisted in Room; interrupted
