@@ -54,7 +54,7 @@ class JschSftpClient @Inject constructor(
     override suspend fun trustAndProceed(host: String) = withContext(Dispatchers.IO) {
         val hostKey = session?.hostKey ?: throw SftpException("No session to trust")
         val keyBytes = java.util.Base64.getDecoder().decode(hostKey.key)
-        knownHosts.put(host, Fingerprint.sha256(keyBytes))
+        knownHosts.put(host, Fingerprint.sha256(keyBytes), hostKey.type)
         openSftpChannel()
     }
 
