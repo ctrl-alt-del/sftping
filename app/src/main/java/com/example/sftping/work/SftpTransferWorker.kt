@@ -46,7 +46,7 @@ class SftpTransferWorker @AssistedInject constructor(
         return when {
             result.isSuccess -> {
                 if (task.direction == TransferTaskDirection.UPLOAD) {
-                    java.io.File(task.localUri).delete()
+                    java.io.File(applicationContext.cacheDir, "sftping_ul_${task.id}_${task.fileName}").delete()
                 }
                 Result.success()
             }
