@@ -34,12 +34,17 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -78,6 +83,8 @@ fun FilesScreen(
     val state = viewModel.uiState
     val snackbarHostState = remember { SnackbarHostState() }
     var fabExpanded by remember { mutableStateOf(false) }
+    var searchActive by remember { mutableStateOf(false) }
+    var sortMenuExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { viewModel.loadFiles() }
     LaunchedEffect(Unit) { viewModel.navigateToConnection.collect { onNavigateToConnection() } }
@@ -126,19 +133,61 @@ fun FilesScreen(
                     }
                 )
             } else {
-                TopAppBar(
-                    title = { Text(state.currentPath, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    navigationIcon = {
-                        IconButton(onClick = viewModel::navigateBack, enabled = viewModel.canGoBack()) {
-                            Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                Column {
+                    TopAppBar(
+                        title = { Text(state.currentPath, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        navigationIcon = {
+                            IconButton(onClick = viewModel::navigateBack, enabled = viewModel.canGoBack()) {
+                                Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = {
+                                searchActive = !searchActive
+                                if (!searchActive) viewModel.setSearchQuery("")
+                            }) {
+                                Icon(Icons.Filled.Search, contentDescription = "Search")
+                            }
+                            Box {
+                                IconButton(onClick = { sortMenuExpanded = true }) {
+                                    Icon(Icons.Filled.Sort, contentDescription = "Sort and filter")
+                                }
+                                SortFilterMenu(
+                                    expanded = sortMenuExpanded,
+                                    sortMode = state.sortMode,
+                                    showHidden = state.showHidden,
+                                    onDismiss = { sortMenuExpanded = false },
+                                    onSortSelected = {
+                                        viewModel.setSortMode(it)
+                                        sortMenuExpanded = false
+                                    },
+                                    onToggleHidden = { viewModel.toggleShowHidden() }
+                                )
+                            }
+                            IconButton(onClick = { viewModel.loadFiles(state.currentPath) }) {
+                                Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+                            }
                         }
-                    },
-                    actions = {
-                        IconButton(onClick = { viewModel.loadFiles(state.currentPath) }) {
-                            Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
-                        }
+                    )
+                    if (searchActive) {
+                        OutlinedTextField(
+                            value = state.searchQuery,
+                            onValueChange = viewModel::setSearchQuery,
+                            placeholder = { Text("Search this folder") },
+                            singleLine = true,
+                            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                            trailingIcon = {
+                                IconButton(onClick = {
+                                    viewModel.setSearchQuery("")
+                                    searchActive = false
+                                }) { Icon(Icons.Filled.Close, contentDescription = "Clear search") }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                        )
                     }
-                )
+                }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -174,8 +223,11 @@ fun FilesScreen(
             if (state.loading && state.files.isEmpty()) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (state.files.isEmpty()) {
-                Text("This folder is empty", modifier = Modifier.align(Alignment.Center),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    if (state.searchQuery.isNotBlank()) "No matching files" else "This folder is empty",
+                    modifier = Modifier.align(Alignment.Center),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             } else {
                 LazyColumn {
                     items(state.files, key = { it.path }) { file ->
@@ -269,4 +321,51 @@ private fun fileSubtitle(file: RemoteFile): String {
     val size = file.formattedSize
     val date = dateFormat.format(Date(file.lastModified * 1000L))
     return if (file.isDirectory) date else "$size · $date"
+}
+
+private val sortOptions = listOf(
+    SortMode.NAME_ASC to "Name (A–Z)",
+    SortMode.NAME_DESC to "Name (Z–A)",
+    SortMode.SIZE to "Size",
+    SortMode.LAST_MODIFIED to "Last modified"
+)
+
+@Composable
+private fun SortFilterMenu(
+    expanded: Boolean,
+    sortMode: SortMode,
+    showHidden: Boolean,
+    onDismiss: () -> Unit,
+    onSortSelected: (SortMode) -> Unit,
+    onToggleHidden: () -> Unit
+) {
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        Text(
+            "Sort by",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        sortOptions.forEach { (mode, label) ->
+            DropdownMenuItem(
+                text = { Text(label) },
+                onClick = { onSortSelected(mode) },
+                trailingIcon = {
+                    if (mode == sortMode) {
+                        Icon(Icons.Filled.Check, contentDescription = "Selected")
+                    }
+                }
+            )
+        }
+        HorizontalDivider()
+        DropdownMenuItem(
+            text = { Text("Show hidden files") },
+            onClick = onToggleHidden,
+            trailingIcon = {
+                if (showHidden) {
+                    Icon(Icons.Filled.Check, contentDescription = "Enabled")
+                }
+            }
+        )
+    }
 }
