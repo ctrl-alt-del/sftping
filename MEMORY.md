@@ -172,6 +172,12 @@
   View-input setters (`setSortMode`/`toggleShowHidden`/`setSearchQuery`) update state and
   recompute **in-memory** — no re-fetch. The pure `FileView` is JVM-unit-testable; persist
   sort/hidden across navigation but clear the search query on `navigateTo`/`navigateBack`.
+- **Remember last path across tab switches**: an Activity-scoped `viewModel()` survives tab
+  switches, so its state persists — but a screen's `LaunchedEffect(Unit)` re-fires on re-entry.
+  Drive (re)loads through an `onEnterScreen()` that uses a `SessionState.epoch` (bumped on each
+  connect) to distinguish a **new connection** (→ reset to initial dir, clear back-stack) from
+  **returning to the tab** (→ reload the last `currentPath`). Don't reset screen state blindly
+  in `LaunchedEffect`.
 - **ComponentActivity + @AndroidEntryPoint** = enough for `viewModel()` + `@HiltViewModel`.
   No `hilt-navigation-compose` needed; no NavHost required for tab-based `NavigationSuiteScaffold`.
 - **Material 3 swipe + multi-select list management**: `ElevatedCard` per row with
@@ -205,6 +211,9 @@
   pure `FileView` (filter hidden + name search, then folders-first + selected sort). One
   SFTP list per directory; all view changes are in-memory and testable. Search filters the
   current directory only (no recursive remote walk).
+- ADR-009: Detect a new connection via a `SessionState.epoch` bumped on each connect (not by
+  comparing `initialDirectory`, which can repeat across hosts). Files reloads the last
+  `currentPath` on same-session tab re-entry and resets to `initialDirectory` on epoch change.
 
 ## 📂 Code Ownership Map
 
@@ -214,7 +223,7 @@
 | `MainActivity.kt` | 001 | App shell, nav, @AndroidEntryPoint |
 | `security/Fingerprint.kt`, `KnownHostsStore.kt`, `TrustedHost.kt` | 001, 007 | TOFU; `KnownHostsStore` persisted via DataStore (007); `TrustedHost` JSON model (007) |
 | `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003, 007, 008 | Session in 001; transfer methods in 002; resume in 003; persist keyType (007); `homeDirectory()` (008); per-operation channel (concurrency fix) |
-| `sftp/SessionState.kt` | 008 | `@Singleton` cross-VM holder for the resolved initial directory (Connect → Files) |
+| `sftp/SessionState.kt` | 008, 010 | `@Singleton` cross-VM holder: resolved initial directory (008) + connection `epoch` for last-path memory (010) |
 | `security/KeystoreCrypto.kt`, `SecretStore.kt` | 001 | Credential crypto; reusable |
 | `data/connection/ConnectionProfile.kt`, `ConnectionRepository.kt` | 001, 008 | Recent connection persistence; `defaultDirectory` added in 008 |
 | `data/transfer/TransferTask.kt`, `TransferDatabase.kt`, `TransferTaskDao.kt` | 003 | Room transfer-state persistence (`sftping.db`) |
@@ -224,8 +233,8 @@
 | `transfer/strategy/` (`TransferStrategy.kt`, `SftpTransferStrategy.kt`, `TransferProgress.kt`) | 006 | Protocol layer (JSch → `Flow<TransferProgress>`) |
 | `transfer/usecase/` (Enqueue/Download/Upload/Pause/Resume/Cancel) | 003, 006 | Transfer business logic (offsets, retries, persistence) |
 | `work/SftpTransferWorker.kt` | 004, 006 | Background FGS worker; delegates to use cases in 006; upload success deletes the real cache file (cleanup fix) |
-| `ui/connection/` | 001, 007, 008 | Connection form + VM; trusted-hosts manager + revoke (007); password show/hide + default-directory field (008) |
-| `ui/files/` (incl. `FileView.kt`) | 001, 002, 008, 009 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009) |
+| `ui/connection/` | 001, 007, 008, 010 | Connection form + VM; trusted-hosts manager + revoke (007); password show/hide + default-directory field (008); bumps `SessionState.epoch` on connect (010) |
+| `ui/files/` (incl. `FileView.kt`) | 001, 002, 008, 009, 010 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009); `onEnterScreen` remembers last path across tab switches (010) |
 | `ui/transfers/` | 002, 004 | Transfers list, progress, pause/resume/cancel, swipe + multi-select |
 
 ## 🐛 Common Bugs Fixed

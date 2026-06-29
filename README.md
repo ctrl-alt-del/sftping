@@ -18,7 +18,7 @@ resumable, pausable, background transfers.
   from a trusted-hosts manager or re-verified directly from the change warning.
 - **Remote file browser** with folder navigation, **multi-select** (tap to enter,
   long-press to select), **search**, **sort** (name A–Z/Z–A, size, last modified),
-  and a **hidden-file toggle**.
+  and a **hidden-file toggle**. Returns to your last folder when you switch tabs.
 - **Upload & download via the Storage Access Framework** — pick a document to
   upload, choose a destination to save a download.
 - **Convenient connect form.** Show/hide the password, and set an optional default

@@ -15,6 +15,7 @@ last_updated: "2026-06-29"
 | 007 | Persist Host-Key Trust & Revoke | ✅ Done | `security/`, `di/`, `sftp/`, `ui/connection/` | 001 |
 | 008 | Connect Page: Password Visibility & Default Directory | ✅ Done | `sftp/`, `data/connection/`, `ui/connection/`, `ui/files/` | 001 |
 | 009 | Files Page: Hidden Toggle, Sort & Search | ✅ Done | `ui/files/` | 001 |
+| 010 | Files Page: Remember Last Visited Path | ✅ Done | `sftp/`, `ui/connection/`, `ui/files/` | 008 |
 
 Status: 📋 Planned → 🚧 In Progress → ✅ Done → 📦 Archived
 
