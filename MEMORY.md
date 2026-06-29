@@ -45,6 +45,11 @@
   file to determine the byte offset. If the file doesn't exist (fresh download), the
   `get(..., RESUME)` call throws `SftpException`. Always ensure the local file exists
   before using RESUME mode: `if (!file.exists()) file.createNewFile()`.
+- ⚡ `#api` The same applies to **uploads**: `put(..., ChannelSftp.RESUME)` `stat()`s the
+  **remote** destination to find the resume offset, so a fresh upload (remote file absent)
+  throws `SftpException`. You can't pre-create the remote file, so **only use RESUME when
+  resuming** — route by offset: `skip == 0` → `put(..., OVERWRITE)`; `skip > 0` →
+  `put(..., RESUME)`. Never use RESUME unconditionally for uploads.
 - ⚡ `#api` `callbackFlow { ... awaitClose { } }` is wrong for single-shot operations like
   SFTP downloads/uploads. `awaitClose` suspends the producer coroutine **indefinitely** after
   the operation completes, causing the `collect {}` caller to hang forever. Use `close()`
@@ -244,6 +249,12 @@
   `close()` after the operation returns. `awaitClose` is only for long-lived listeners.
 - **006** `mock<Context>()` returned null `cacheDir`, breaking use-case tests. Fix:
   `doReturn(realDir).whenever(context).cacheDir`.
+- **fix (upload)** ⚡ Fresh uploads failed instantly (`Worker result FAILURE`, ~30 ms)
+  because `SftpTransferStrategy.upload` always called `uploadWithResume` → `put(..., RESUME)`,
+  which `stat()`s the absent remote file and throws `SftpException` (the upload twin of the
+  003 download-RESUME bug); the real cause was swallowed (no log). Fix: route by offset in
+  the strategy — `skip == 0` → `sftpClient.upload` (OVERWRITE), `skip > 0` → `uploadWithResume`
+  (RESUME); plus `Log.e` the exception in `Upload/DownloadUseCase`.
 
 ## 🧠 AI Workflow Rule
 
