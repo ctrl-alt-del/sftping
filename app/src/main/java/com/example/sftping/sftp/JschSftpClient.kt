@@ -64,6 +64,14 @@ class JschSftpClient @Inject constructor(
         } ?: throw SftpException("Failed to open SFTP channel")
     }
 
+    override suspend fun homeDirectory(): String = withContext(Dispatchers.IO) {
+        try {
+            checkChannel().home
+        } catch (e: JschSftpException) {
+            throw SftpException("Failed to resolve home directory", e)
+        }
+    }
+
     override suspend fun listFiles(path: String): List<RemoteFile> = withContext(Dispatchers.IO) {
         val ch = checkChannel()
         try {

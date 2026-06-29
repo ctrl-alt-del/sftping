@@ -7,6 +7,8 @@ interface ISftpClient {
 
     suspend fun trustAndProceed(host: String)
 
+    suspend fun homeDirectory(): String
+
     suspend fun listFiles(path: String): List<RemoteFile>
 
     suspend fun disconnect()
