@@ -46,6 +46,16 @@ class TransferManager @Inject constructor(
     suspend fun cancel(id: Long) = cancelUseCase.execute(id)
 
     suspend fun getTransferred(id: Long): Long = dao.get(id)?.transferredBytes ?: 0L
+
+    /** Remote paths of uploads that have completed — used to flag already-uploaded files. */
+    suspend fun completedUploadPaths(): Set<String> =
+        dao.all()
+            .filter {
+                it.direction == com.example.sftping.data.transfer.TransferTaskDirection.UPLOAD &&
+                    it.status == com.example.sftping.data.transfer.TransferTaskStatus.COMPLETED
+            }
+            .map { it.remotePath }
+            .toSet()
 }
 
 private fun com.example.sftping.data.transfer.TransferTask.toTransferItem() = TransferItem(

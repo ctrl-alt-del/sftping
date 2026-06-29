@@ -56,6 +56,33 @@ class TransferManagerTest {
         )
         assertEquals(500L, manager.getTransferred(1L))
     }
+
+    @Test
+    fun `completedUploadPaths returns only completed upload remote paths`() = runTest {
+        val dao = FakeDao()
+        val context = mock<Context>()
+        val manager = TransferManager(dao, context, mockEnqueue, mockPause, mockResume, mockCancel)
+        dao.insert(
+            TransferTask(
+                remotePath = "/d/a.txt", fileName = "a.txt", totalBytes = 1, transferredBytes = 1,
+                direction = TransferTaskDirection.UPLOAD, status = TransferTaskStatus.COMPLETED
+            )
+        )
+        dao.insert(
+            TransferTask(
+                remotePath = "/d/b.txt", fileName = "b.txt", totalBytes = 1, transferredBytes = 0,
+                direction = TransferTaskDirection.UPLOAD, status = TransferTaskStatus.RUNNING
+            )
+        )
+        dao.insert(
+            TransferTask(
+                remotePath = "/d/c.txt", fileName = "c.txt", totalBytes = 1, transferredBytes = 1,
+                direction = TransferTaskDirection.DOWNLOAD, status = TransferTaskStatus.COMPLETED
+            )
+        )
+
+        assertEquals(setOf("/d/a.txt"), manager.completedUploadPaths())
+    }
 }
 
 private class FakeDao : TransferTaskDao {
