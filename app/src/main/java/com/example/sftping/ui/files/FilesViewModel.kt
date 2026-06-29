@@ -21,6 +21,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -40,7 +41,9 @@ data class FilesUiState(
     val renamingFile: RemoteFile? = null,
     val showHidden: Boolean = false,
     val sortMode: SortMode = SortMode.NAME_ASC,
-    val searchQuery: String = ""
+    val searchQuery: String = "",
+    val uploadCandidates: List<UploadCandidate> = emptyList(),
+    val showUploadSheet: Boolean = false
 )
 
 @HiltViewModel
@@ -195,48 +198,128 @@ class FilesViewModel @Inject constructor(
     fun uploadFile(uri: Uri) {
         viewModelScope.launch {
             val fileName = resolveFileName(uri) ?: "uploaded_file"
-            val remotePath = if (uiState.currentPath == "/") "/$fileName"
-            else "${uiState.currentPath}/$fileName"
-            val tempFile = copyUriToCache(uri, fileName) ?: return@launch
+            val taskId = enqueueUpload(uri, fileName) ?: return@launch
+            observeBatchThenRefresh(listOf(taskId))
+        }
+    }
 
-            val taskId = transferManager.enqueue(
-                fileName, remotePath, tempFile.absolutePath, tempFile.length(),
-                TransferDirection.UPLOAD
-            )
+    /** Resolve picked files and show the upload-selection sheet, flagging already-uploaded ones. */
+    fun prepareUpload(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        viewModelScope.launch {
+            val uploaded = transferManager.completedUploadPaths()
+            val candidates = uris.map { uri ->
+                val (name, size) = resolveFileMeta(uri)
+                UploadCandidate(
+                    uri = uri,
+                    name = name,
+                    size = size,
+                    alreadyUploaded = uploadRemotePath(uiState.currentPath, name) in uploaded
+                )
+            }
+            uiState = uiState.copy(uploadCandidates = candidates, showUploadSheet = true)
+        }
+    }
 
-            // Rename cache to match UploadUseCase naming: sftping_ul_<taskId>_<fileName>
-            val named = File(context.cacheDir, "sftping_ul_${taskId}_$fileName")
-            tempFile.renameTo(named)
+    fun toggleUploadCandidate(uri: Uri) {
+        uiState = uiState.copy(
+            uploadCandidates = uiState.uploadCandidates.map {
+                if (it.uri == uri) it.copy(selected = !it.selected) else it
+            }
+        )
+    }
 
-            // Wait for Worker completion, then refresh
-            viewModelScope.launch {
-                transferManager.items.collect { items ->
-                    val item = items.find { it.id == taskId }
-                    if (item != null && item.status == TransferStatus.COMPLETED) {
-                        loadFiles(uiState.currentPath)
-                        return@collect
+    fun cancelUpload() {
+        uiState = uiState.copy(showUploadSheet = false, uploadCandidates = emptyList())
+    }
+
+    fun confirmUpload() {
+        val selected = uiState.uploadCandidates.filter { it.selected }
+        uiState = uiState.copy(showUploadSheet = false, uploadCandidates = emptyList())
+        if (selected.isEmpty()) return
+        viewModelScope.launch {
+            val ids = mutableListOf<Long>()
+            for (candidate in selected) {
+                enqueueUpload(candidate.uri, candidate.name)?.let { ids.add(it) }
+            }
+            if (ids.isNotEmpty()) observeBatchThenRefresh(ids)
+        }
+    }
+
+    private suspend fun enqueueUpload(uri: Uri, fileName: String): Long? {
+        val tempFile = copyUriToCache(uri, fileName) ?: return null
+        val remotePath = uploadRemotePath(uiState.currentPath, fileName)
+        val taskId = transferManager.enqueue(
+            fileName, remotePath, tempFile.absolutePath, tempFile.length(),
+            TransferDirection.UPLOAD
+        )
+        // Rename cache to match UploadUseCase naming: sftping_ul_<taskId>_<fileName>
+        val named = File(context.cacheDir, "sftping_ul_${taskId}_$fileName")
+        tempFile.renameTo(named)
+        return taskId
+    }
+
+    /** Refresh the listing once every task in [ids] reaches a terminal state. */
+    private fun observeBatchThenRefresh(ids: List<Long>) {
+        val pending = ids.toSet()
+        viewModelScope.launch {
+            transferManager.items.first { items ->
+                pending.all { id ->
+                    when (items.find { it.id == id }?.status) {
+                        TransferStatus.COMPLETED, TransferStatus.FAILED, TransferStatus.CANCELLED -> true
+                        else -> false
                     }
                 }
             }
+            loadFiles(uiState.currentPath)
         }
     }
 
     fun downloadFile(remotePath: String, destUri: Uri) {
         viewModelScope.launch {
             val fileName = remotePath.substringAfterLast("/")
-            val taskId = transferManager.enqueue(
-                fileName, remotePath, destUri.toString(), 0,
-                TransferDirection.DOWNLOAD
+            val taskId = enqueueDownload(remotePath, fileName, destUri)
+            observeDownloadThenCopy(taskId, fileName, destUri)
+        }
+    }
+
+    /** Download every selected non-directory file into the chosen [treeUri] folder. */
+    fun downloadFiles(remotePaths: List<String>, treeUri: Uri) {
+        if (remotePaths.isEmpty()) return
+        viewModelScope.launch {
+            context.contentResolver.takePersistableUriPermission(
+                treeUri,
+                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                    android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             )
-            viewModelScope.launch {
-                transferManager.items.collect { items ->
-                    val item = items.find { it.id == taskId }
-                    if (item != null && item.status == TransferStatus.COMPLETED) {
-                        val cacheFile = File(context.cacheDir, "sftping_dl_${taskId}_${fileName}")
-                        copyCacheToUri(cacheFile, destUri)
-                        cacheFile.delete()
-                        return@collect
-                    }
+            val treeDoc = androidx.documentfile.provider.DocumentFile.fromTreeUri(context, treeUri)
+            for (remotePath in remotePaths) {
+                val fileName = remotePath.substringAfterLast("/")
+                val doc = treeDoc?.createFile("application/octet-stream", fileName) ?: continue
+                val destUri = doc.uri
+                val taskId = enqueueDownload(remotePath, fileName, destUri)
+                observeDownloadThenCopy(taskId, fileName, destUri)
+            }
+        }
+    }
+
+    private suspend fun enqueueDownload(remotePath: String, fileName: String, destUri: Uri): Long {
+        return transferManager.enqueue(fileName, remotePath, destUri.toString(), 0, TransferDirection.DOWNLOAD)
+    }
+
+    private fun observeDownloadThenCopy(taskId: Long, fileName: String, destUri: Uri) {
+        viewModelScope.launch {
+            val items = transferManager.items.first { list ->
+                when (list.find { it.id == taskId }?.status) {
+                    TransferStatus.COMPLETED, TransferStatus.FAILED, TransferStatus.CANCELLED -> true
+                    else -> false
+                }
+            }
+            if (items.find { it.id == taskId }?.status == TransferStatus.COMPLETED) {
+                val cacheFile = File(context.cacheDir, "sftping_dl_${taskId}_${fileName}")
+                if (cacheFile.exists()) {
+                    copyCacheToUri(cacheFile, destUri)
+                    cacheFile.delete()
                 }
             }
         }
@@ -288,5 +371,19 @@ class FilesViewModel @Inject constructor(
             }
         }
         name ?: uri.lastPathSegment
+    }
+
+    private suspend fun resolveFileMeta(uri: Uri): Pair<String, Long> = withContext(Dispatchers.IO) {
+        var name: String? = null
+        var size = -1L
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val nameIdx = cursor.getColumnIndex("_display_name")
+                if (nameIdx >= 0) name = cursor.getString(nameIdx)
+                val sizeIdx = cursor.getColumnIndex("_size")
+                if (sizeIdx >= 0 && !cursor.isNull(sizeIdx)) size = cursor.getLong(sizeIdx)
+            }
+        }
+        (name ?: uri.lastPathSegment ?: "file") to size
     }
 }
