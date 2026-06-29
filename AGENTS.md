@@ -19,8 +19,8 @@ with three state-driven tabs: **Connect → Files → Transfers** (no NavHost).
 
 Stack: **Hilt** DI, **Room** (`sftping.db`) for transfer state, **WorkManager**
 `dataSync` foreground service for background transfers, **DataStore** for
-connection profiles + encrypted secrets, **JSch (mwiede fork)** for SFTP, and
-**Android Keystore** AES-256-GCM for credential encryption.
+connection profiles, trusted host keys + encrypted secrets, **JSch (mwiede fork)**
+for SFTP, and **Android Keystore** AES-256-GCM for credential encryption.
 
 Transfers use a layered, protocol-agnostic pipeline:
 `SftpTransferWorker → Download/UploadUseCase → TransferStrategy (SftpTransferStrategy
@@ -31,13 +31,13 @@ Package map under `com/example/sftping/`:
 - `ui/{connection,files,transfers,theme}` — Compose screens + `@HiltViewModel`s
 - `transfer/` — `TransferManager` (thin state holder) + `strategy/` + `usecase/`
 - `sftp/` — `ISftpClient`/`JschSftpClient`, `RemoteFile`, `HostKeyResult`
-- `security/` — `Fingerprint`, `KnownHostsStore`, `KeystoreCrypto`, `SecretStore`
+- `security/` — `Fingerprint`, `KnownHostsStore` (DataStore-backed), `TrustedHost`, `KeystoreCrypto`, `SecretStore`
 - `data/connection/` (DataStore) + `data/transfer/` (Room entity/DAO/db)
 - `work/` — `SftpTransferWorker` (`@HiltWorker`)
 - `di/` — `SftpModule`, `SecurityModule`, `DatabaseModule`
 
-> Known gaps: `KnownHostsStore` is in-memory (trust lost on restart); private-key
-> auth UI exists but isn't wired in `JschSftpClient`. See `README.md` and `MEMORY.md`.
+> Known gaps: private-key auth UI exists but isn't wired in `JschSftpClient`.
+> See `README.md` and `MEMORY.md`.
 
 ## Commands
 

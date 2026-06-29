@@ -103,6 +103,11 @@
   Keystore AES-GCM** (optionally Tink) and store ciphertext in DataStore.
 - `#security` Show host-key fingerprints as **SHA-256** (TOFU), not MD5; never use
   `StrictHostKeyChecking=no` in production.
+- `#security` Host-key fingerprints are **public keys, not secrets** → persist them
+  as **plaintext JSON in DataStore** (`known_hosts`), never via Keystore (Keystore is
+  only for credentials). `KnownHostsStore` is now **suspend** (DataStore is
+  Flow/suspend-based); existing callers in `JschSftpClient` already run inside
+  `withContext(Dispatchers.IO)`, so the sync→suspend swap is transparent.
 - `#build` Tooling is intentionally bleeding-edge (AGP 9.2.1, Kotlin 2.2.10,
   compileSdk 37, Compose BOM 2025.12.00). Verify Hilt / KSP / Room versions against
   the catalog before trusting web snippets.
@@ -120,6 +125,13 @@
 - **Credentials outside the profile**: passwords/keys are encrypted and stored separately via
   `SecretStore` keyed by `host:port:user` ID, not bundled in `ConnectionProfile`. Keeps
   DataStore records audit-clean (profiles = public, keys = encrypted, stored separately).
+- **Persisted KnownHostsStore via DataStore + JSON list**: model a `TrustedHost`
+  (host, fingerprint, keyType, trustedAt) with `org.json` helpers (JVM-testable like
+  `ConnectionProfile`); store the list under one preference key (`known_hosts`). Keep an
+  `InMemoryKnownHostsStore` implementing the same suspend interface as a fast unit-test
+  double. Revoke = remove the entry; the "Host key changed!" dialog's
+  **Revoke & re-verify** removes the stored key, then re-runs `connect()` so the new key
+  surfaces as `Unknown` for fresh TOFU verification.
 - **ComponentActivity + @AndroidEntryPoint** = enough for `viewModel()` + `@HiltViewModel`.
   No `hilt-navigation-compose` needed; no NavHost required for tab-based `NavigationSuiteScaffold`.
 - **Material 3 swipe + multi-select list management**: `ElevatedCard` per row with
@@ -142,6 +154,9 @@
 - ADR-005: DI = Hilt (with `HiltWorker` for WorkManager). ⚡ `applicationId` stays
   `com.example.sftping` until release — **must** change before Play Store submission
   (rejects `com.example.*`).
+- ADR-006: Persist trusted host keys in **DataStore as plaintext JSON** (fingerprints
+  are public keys). Key entries by **host** (SSH-endpoint/port scoping deferred). Revoke
+  = remove the entry; the Changed-dialog "Revoke & re-verify" re-runs `connect()`.
 
 ## 📂 Code Ownership Map
 
@@ -149,19 +164,18 @@
 |------|-----------|-----|
 | `SftpingApplication.kt` | 001, 004 | @HiltAndroidApp entry point; `Configuration.Provider` for HiltWorkerFactory in 004 |
 | `MainActivity.kt` | 001 | App shell, nav, @AndroidEntryPoint |
-| `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003 | Session in 001; transfer methods in 002; resume in 003 |
-| `sftp/RemoteFile.kt`, `HostKeyResult.kt` | 001 | Domain models |
-| `security/Fingerprint.kt`, `KnownHostsStore.kt` | 001 | TOFU; `KnownHostsStore` still in-memory |
+| `security/Fingerprint.kt`, `KnownHostsStore.kt`, `TrustedHost.kt` | 001, 007 | TOFU; `KnownHostsStore` persisted via DataStore (007); `TrustedHost` JSON model (007) |
+| `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003, 007 | Session in 001; transfer methods in 002; resume in 003; persist keyType (007) |
 | `security/KeystoreCrypto.kt`, `SecretStore.kt` | 001 | Credential crypto; reusable |
 | `data/connection/ConnectionProfile.kt`, `ConnectionRepository.kt` | 001 | Recent connection persistence |
 | `data/transfer/TransferTask.kt`, `TransferDatabase.kt`, `TransferTaskDao.kt` | 003 | Room transfer-state persistence (`sftping.db`) |
-| `di/SecurityModule.kt`, `SftpModule.kt` | 001, 006 | Hilt bindings; `TransferStrategy` binding added in 006 |
+| `di/SecurityModule.kt`, `SftpModule.kt` | 001, 006, 007 | Hilt bindings; `TransferStrategy` binding added in 006; KnownHostsStore→DataStore bind (007) |
 | `di/DatabaseModule.kt` | 003 | Room DB + DAO providers |
 | `transfer/TransferItem.kt`, `TransferManager.kt` | 002, 003, 006 | StateFlow holder in 002; Room-backed in 003; thinned to coordinator in 006 |
 | `transfer/strategy/` (`TransferStrategy.kt`, `SftpTransferStrategy.kt`, `TransferProgress.kt`) | 006 | Protocol layer (JSch → `Flow<TransferProgress>`) |
 | `transfer/usecase/` (Enqueue/Download/Upload/Pause/Resume/Cancel) | 003, 006 | Transfer business logic (offsets, retries, persistence) |
 | `work/SftpTransferWorker.kt` | 004, 006 | Background FGS worker; delegates to use cases in 006 |
-| `ui/connection/` | 001 | Connection form + VM |
+| `ui/connection/` | 001, 007 | Connection form + VM; trusted-hosts manager + revoke (007) |
 | `ui/files/` | 001, 002 | File browser in 001; upload/download/delete/rename actions in 002 |
 | `ui/transfers/` | 002, 004 | Transfers list, progress, pause/resume/cancel, swipe + multi-select |
 

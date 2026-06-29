@@ -13,7 +13,9 @@ resumable, pausable, background transfers.
 - **Connect with host-key verification (TOFU).** On first connect the app shows
   the server's **SHA-256** fingerprint and asks you to trust it. Subsequent
   connections are checked against the stored fingerprint and surface a
-  `Trusted` / `Unknown` / `Changed` result (MITM warning on change).
+  `Trusted` / `Unknown` / `Changed` result (MITM warning on change). Trusted keys
+  are **persisted** (DataStore) so they survive restarts, and can be **revoked**
+  from a trusted-hosts manager or re-verified directly from the change warning.
 - **Remote file browser** with folder navigation and **multi-select**
   (tap to enter, long-press to select).
 - **Upload & download via the Storage Access Framework** — pick a document to
@@ -93,7 +95,7 @@ app/src/main/java/com/example/sftping/
 │   ├── strategy/              TransferStrategy + SftpTransferStrategy + TransferProgress
 │   └── usecase/               Enqueue/Download/Upload/Pause/Resume/Cancel
 ├── sftp/                      ISftpClient, JschSftpClient, RemoteFile, HostKeyResult
-├── security/                  Fingerprint, KnownHostsStore, KeystoreCrypto, SecretStore
+├── security/                  Fingerprint, KnownHostsStore, TrustedHost, KeystoreCrypto, SecretStore
 ├── data/
 │   ├── connection/            ConnectionProfile + DataStore-backed repository
 │   └── transfer/              Room entity, DAO, database
@@ -128,8 +130,6 @@ strategy progress, view models, etc.). The single instrumented test in
 
 ## Known Limitations & Roadmap
 
-- **Host-key trust is not persisted.** `KnownHostsStore` is currently in-memory,
-  so trusted fingerprints are lost on process death and must be re-verified.
 - **Private-key auth is not wired.** The connection UI exposes a key toggle, but
   `JschSftpClient` currently authenticates with password / keyboard-interactive
   only.
