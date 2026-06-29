@@ -86,7 +86,7 @@ fun FilesScreen(
     var searchActive by remember { mutableStateOf(false) }
     var sortMenuExpanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) { viewModel.loadFiles() }
+    LaunchedEffect(Unit) { viewModel.onEnterScreen() }
     LaunchedEffect(Unit) { viewModel.navigateToConnection.collect { onNavigateToConnection() } }
     LaunchedEffect(state.error) { state.error?.let { snackbarHostState.showSnackbar(it) } }
 

@@ -232,6 +232,53 @@ class FilesViewModelTest {
         assertTrue(vm.uiState.showHidden)
     }
 
+    @Test
+    fun `onEnterScreen loads initial directory on first entry`() = runTest {
+        sessionState.epoch = 1
+        sessionState.initialDirectory = "/home/u"
+        doReturn(emptyList<RemoteFile>()).`when`(client).listFiles("/home/u")
+
+        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        vm.onEnterScreen()
+
+        assertEquals("/home/u", vm.uiState.currentPath)
+        verify(client).listFiles("/home/u")
+    }
+
+    @Test
+    fun `onEnterScreen reloads last path within same session`() = runTest {
+        sessionState.epoch = 1
+        sessionState.initialDirectory = "/home/u"
+        doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
+
+        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        vm.onEnterScreen()
+        vm.navigateTo("logs")
+        assertEquals("/home/u/logs", vm.uiState.currentPath)
+
+        vm.onEnterScreen()
+        assertEquals("/home/u/logs", vm.uiState.currentPath)
+    }
+
+    @Test
+    fun `onEnterScreen resets to initial directory on new session`() = runTest {
+        sessionState.epoch = 1
+        sessionState.initialDirectory = "/home/u"
+        doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
+
+        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        vm.onEnterScreen()
+        vm.navigateTo("logs")
+        assertTrue(vm.canGoBack())
+
+        sessionState.epoch = 2
+        sessionState.initialDirectory = "/srv"
+        vm.onEnterScreen()
+
+        assertEquals("/srv", vm.uiState.currentPath)
+        assertFalse(vm.canGoBack())
+    }
+
     private fun assertNull(value: Any?) {
         org.junit.Assert.assertNull(value)
     }

@@ -57,6 +57,20 @@ class FilesViewModel @Inject constructor(
     private val _navigateToConnection = MutableSharedFlow<Unit>()
     val navigateToConnection: SharedFlow<Unit> = _navigateToConnection
 
+    private var loadedEpoch: Int = -1
+
+    fun onEnterScreen() {
+        if (sessionState.epoch != loadedEpoch) {
+            // New connection: start at the host's home/default directory.
+            loadedEpoch = sessionState.epoch
+            uiState = uiState.copy(pathStack = emptyList(), searchQuery = "")
+            loadFiles(sessionState.initialDirectory)
+        } else {
+            // Returning to the tab in the same session: reopen the last visited path.
+            loadFiles(uiState.currentPath)
+        }
+    }
+
     fun loadFiles(path: String = sessionState.initialDirectory) {
         viewModelScope.launch {
             uiState = uiState.copy(loading = true, error = null)
