@@ -17,4 +17,8 @@ class TransfersViewModel @Inject constructor(
     fun cancel(id: Long) {
         viewModelScope.launch { manager.cancel(id) }
     }
+
+    fun retry(id: Long) {
+        viewModelScope.launch { manager.retry(id) }
+    }
 }

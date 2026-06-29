@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.AlertDialog
@@ -175,7 +176,14 @@ fun TransfersScreen(viewModel: TransfersViewModel = viewModel()) {
                             else selectedIds + item.id
                         },
                         onTap = { detailItem = it },
-                        onDelete = { viewModel.cancel(item.id) }
+                        onDelete = { viewModel.cancel(item.id) },
+                        onRetry = if (item.status == TransferStatus.FAILED &&
+                            item.direction == TransferDirection.UPLOAD
+                        ) {
+                            { viewModel.retry(item.id) }
+                        } else {
+                            null
+                        }
                     )
                 }
             }
@@ -184,7 +192,17 @@ fun TransfersScreen(viewModel: TransfersViewModel = viewModel()) {
     }
 
     detailItem?.let { item ->
-        DetailDialog(item, onClose = { detailItem = null })
+        DetailDialog(
+            item,
+            onClose = { detailItem = null },
+            onRetry = if (item.status == TransferStatus.FAILED &&
+                item.direction == TransferDirection.UPLOAD
+            ) {
+                { viewModel.retry(item.id); detailItem = null }
+            } else {
+                null
+            }
+        )
     }
 }
 
@@ -277,7 +295,8 @@ private fun DoneCard(
     selectMode: Boolean,
     onToggle: () -> Unit,
     onTap: (TransferItem) -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onRetry: (() -> Unit)? = null
 ) {
     if (selectMode) {
         ElevatedCard(
@@ -362,13 +381,22 @@ private fun DoneCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                if (onRetry != null) {
+                    IconButton(onClick = onRetry) {
+                        Icon(
+                            Icons.Filled.Refresh,
+                            contentDescription = "Retry",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun DetailDialog(item: TransferItem, onClose: () -> Unit) {
+private fun DetailDialog(item: TransferItem, onClose: () -> Unit, onRetry: (() -> Unit)? = null) {
     AlertDialog(
         onDismissRequest = onClose,
         icon = {
@@ -420,7 +448,10 @@ private fun DetailDialog(item: TransferItem, onClose: () -> Unit) {
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onClose) { Text("Close") } }
+        confirmButton = { TextButton(onClick = onClose) { Text("Close") } },
+        dismissButton = onRetry?.let { retry ->
+            { TextButton(onClick = retry) { Text("Retry") } }
+        }
     )
 }
 
