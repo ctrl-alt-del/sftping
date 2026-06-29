@@ -7,7 +7,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sftping.data.connection.ConnectionProfile
 import com.example.sftping.data.connection.ConnectionRepository
+import com.example.sftping.security.KnownHostsStore
 import com.example.sftping.security.SecretStore
+import com.example.sftping.security.TrustedHost
 import com.example.sftping.sftp.HostKeyResult
 import com.example.sftping.sftp.ISftpClient
 import com.example.sftping.sftp.SftpException
@@ -27,14 +29,17 @@ data class ConnectionUiState(
     val connecting: Boolean = false,
     val error: String? = null,
     val hostKeyResult: HostKeyResult? = null,
-    val recentConnections: List<ConnectionProfile> = emptyList()
+    val recentConnections: List<ConnectionProfile> = emptyList(),
+    val trustedHosts: List<TrustedHost> = emptyList(),
+    val showTrustedHosts: Boolean = false
 )
 
 @HiltViewModel
 class ConnectionViewModel @Inject constructor(
     private val sftpClient: ISftpClient,
     private val connectionRepo: ConnectionRepository,
-    private val secretStore: SecretStore
+    private val secretStore: SecretStore,
+    private val knownHostsStore: KnownHostsStore
 ) : ViewModel() {
 
     var uiState by mutableStateOf(ConnectionUiState())
@@ -44,7 +49,10 @@ class ConnectionViewModel @Inject constructor(
     val navigateToFiles: SharedFlow<Unit> = _navigateToFiles
 
     init {
-        viewModelScope.launch { loadRecent() }
+        viewModelScope.launch {
+            loadRecent()
+            loadTrustedHosts()
+        }
     }
 
     fun updateHost(v: String) { uiState = uiState.copy(host = v, error = null) }
@@ -56,23 +64,25 @@ class ConnectionViewModel @Inject constructor(
     fun clearError() { uiState = uiState.copy(error = null) }
 
     fun connect() {
+        viewModelScope.launch { doConnect() }
+    }
+
+    private suspend fun doConnect() {
         val s = uiState
-        viewModelScope.launch {
-            uiState = s.copy(connecting = true, error = null, hostKeyResult = null)
-            try {
-                val result = sftpClient.connect(s.host, s.port.toInt(), s.username, s.password)
-                uiState = uiState.copy(connecting = false, hostKeyResult = result)
-                if (result is HostKeyResult.Trusted) {
-                    onConnected()
-                }
-            } catch (e: SftpException) {
-                uiState = uiState.copy(connecting = false, error = e.message ?: "Connection failed")
-            } catch (e: Exception) {
-                uiState = uiState.copy(
-                    connecting = false,
-                    error = e.message ?: "Connection failed"
-                )
+        uiState = s.copy(connecting = true, error = null, hostKeyResult = null)
+        try {
+            val result = sftpClient.connect(s.host, s.port.toInt(), s.username, s.password)
+            uiState = uiState.copy(connecting = false, hostKeyResult = result)
+            if (result is HostKeyResult.Trusted) {
+                onConnected()
             }
+        } catch (e: SftpException) {
+            uiState = uiState.copy(connecting = false, error = e.message ?: "Connection failed")
+        } catch (e: Exception) {
+            uiState = uiState.copy(
+                connecting = false,
+                error = e.message ?: "Connection failed"
+            )
         }
     }
 
@@ -98,6 +108,37 @@ class ConnectionViewModel @Inject constructor(
             sftpClient.disconnect()
             uiState = uiState.copy(hostKeyResult = null)
         }
+    }
+
+    fun revokeAndReverify() {
+        val changed = uiState.hostKeyResult as? HostKeyResult.Changed ?: return
+        viewModelScope.launch {
+            knownHostsStore.remove(changed.host)
+            loadTrustedHosts()
+            doConnect()
+        }
+    }
+
+    fun openTrustedHosts() {
+        viewModelScope.launch {
+            loadTrustedHosts()
+            uiState = uiState.copy(showTrustedHosts = true)
+        }
+    }
+
+    fun closeTrustedHosts() {
+        uiState = uiState.copy(showTrustedHosts = false)
+    }
+
+    fun revokeTrustedHost(host: String) {
+        viewModelScope.launch {
+            knownHostsStore.remove(host)
+            loadTrustedHosts()
+        }
+    }
+
+    private suspend fun loadTrustedHosts() {
+        uiState = uiState.copy(trustedHosts = knownHostsStore.all())
     }
 
     private suspend fun onConnected() {
