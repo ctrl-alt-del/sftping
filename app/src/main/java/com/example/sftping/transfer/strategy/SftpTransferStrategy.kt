@@ -28,8 +28,15 @@ class SftpTransferStrategy @Inject constructor(
         totalBytes: Long,
         skip: Long
     ): Flow<TransferProgress> = callbackFlow {
-        sftpClient.uploadWithResume(localPath, remotePath, skip) { transferred, total ->
+        val onProgress: (Long, Long) -> Unit = { transferred, total ->
             trySend(TransferProgress(transferred, total))
+        }
+        // RESUME mode stat()s the remote file for its offset, which fails for a fresh
+        // upload (remote file absent). Only resume when there is a real offset.
+        if (skip > 0) {
+            sftpClient.uploadWithResume(localPath, remotePath, skip, onProgress)
+        } else {
+            sftpClient.upload(localPath, remotePath, onProgress)
         }
         close()
     }

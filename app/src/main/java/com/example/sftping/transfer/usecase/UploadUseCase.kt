@@ -34,6 +34,7 @@ class UploadUseCase @Inject constructor(
             dao.updateStatus(taskId, TransferTaskStatus.COMPLETED)
             Result.success(Unit)
         } catch (e: Exception) {
+            android.util.Log.e("UploadUseCase", "Upload failed for task $taskId", e)
             dao.updateStatus(taskId, TransferTaskStatus.FAILED)
             Result.failure(e)
         }

@@ -33,6 +33,7 @@ class DownloadUseCase @Inject constructor(
             dao.updateStatus(taskId, TransferTaskStatus.COMPLETED)
             Result.success(Unit)
         } catch (e: Exception) {
+            android.util.Log.e("DownloadUseCase", "Download failed for task $taskId", e)
             dao.updateStatus(taskId, TransferTaskStatus.FAILED)
             Result.failure(e)
         }
