@@ -111,6 +111,20 @@
 - `#build` Tooling is intentionally bleeding-edge (AGP 9.2.1, Kotlin 2.2.10,
   compileSdk 37, Compose BOM 2025.12.00). Verify Hilt / KSP / Room versions against
   the catalog before trusting web snippets.
+- `#ui` Password visibility toggle: keep it pure UI — local `remember { mutableStateOf(false) }`
+  in the Composable swaps `visualTransformation` and shows an eye `trailingIcon`, only in
+  password mode (hide it in key-auth mode where the path is already plaintext). No ViewModel
+  or test change.
+- `#ui` **SessionState bridge** for cross-ViewModel data in the no-NavHost tab app: a
+  `@Singleton class SessionState @Inject constructor()` carries session-scoped values (the
+  resolved start directory) from `ConnectionViewModel` → `FilesViewModel`. Hilt builds it
+  with no DI module. FilesVM reads it via a default arg (`loadFiles(path =
+  sessionState.initialDirectory)`), so the call site stays unchanged.
+- `#api` Resolve the SFTP host home directory via `ChannelSftp.getHome()` (Kotlin property
+  `home`), exposed as `ISftpClient.homeDirectory()`. Resolve once at connect
+  (`enteredDir.ifBlank { homeDirectory() } ?: "/"`); do **not** auto-fallback on a later
+  list failure — the Files screen shows its normal error. Mockito returns `""` for an
+  unstubbed suspend `homeDirectory()`, so the resolution is null/blank-safe in tests.
 
 ## 🔧 Patterns That Worked
 <!-- Reusable patterns discovered across features -->
@@ -132,6 +146,11 @@
   double. Revoke = remove the entry; the "Host key changed!" dialog's
   **Revoke & re-verify** removes the stored key, then re-runs `connect()` so the new key
   surfaces as `Unknown` for fresh TOFU verification.
+- **SessionState singleton for cross-VM session data**: a trivial `@Singleton class X
+  @Inject constructor()` holds resolved, session-scoped values and bridges independent
+  `@HiltViewModel`s without NavHost args or `SavedStateHandle`. Used to carry the Connect
+  page's default directory into the Files browser's starting path; read from a default
+  function argument so existing call sites don't change.
 - **ComponentActivity + @AndroidEntryPoint** = enough for `viewModel()` + `@HiltViewModel`.
   No `hilt-navigation-compose` needed; no NavHost required for tab-based `NavigationSuiteScaffold`.
 - **Material 3 swipe + multi-select list management**: `ElevatedCard` per row with
@@ -157,6 +176,10 @@
 - ADR-006: Persist trusted host keys in **DataStore as plaintext JSON** (fingerprints
   are public keys). Key entries by **host** (SSH-endpoint/port scoping deferred). Revoke
   = remove the entry; the Changed-dialog "Revoke & re-verify" re-runs `connect()`.
+- ADR-007: Bridge Connect→Files with a `@Singleton SessionState` (resolved remote start
+  directory) rather than NavHost args or `SavedStateHandle`; keeps the tab-based,
+  no-NavHost architecture intact. Default directory is resolved once at connect
+  (`enteredDir` or `getHome()`); list failures surface the normal error (no auto-fallback).
 
 ## 📂 Code Ownership Map
 
@@ -165,9 +188,10 @@
 | `SftpingApplication.kt` | 001, 004 | @HiltAndroidApp entry point; `Configuration.Provider` for HiltWorkerFactory in 004 |
 | `MainActivity.kt` | 001 | App shell, nav, @AndroidEntryPoint |
 | `security/Fingerprint.kt`, `KnownHostsStore.kt`, `TrustedHost.kt` | 001, 007 | TOFU; `KnownHostsStore` persisted via DataStore (007); `TrustedHost` JSON model (007) |
-| `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003, 007 | Session in 001; transfer methods in 002; resume in 003; persist keyType (007) |
+| `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003, 007, 008 | Session in 001; transfer methods in 002; resume in 003; persist keyType (007); `homeDirectory()` (008) |
+| `sftp/SessionState.kt` | 008 | `@Singleton` cross-VM holder for the resolved initial directory (Connect → Files) |
 | `security/KeystoreCrypto.kt`, `SecretStore.kt` | 001 | Credential crypto; reusable |
-| `data/connection/ConnectionProfile.kt`, `ConnectionRepository.kt` | 001 | Recent connection persistence |
+| `data/connection/ConnectionProfile.kt`, `ConnectionRepository.kt` | 001, 008 | Recent connection persistence; `defaultDirectory` added in 008 |
 | `data/transfer/TransferTask.kt`, `TransferDatabase.kt`, `TransferTaskDao.kt` | 003 | Room transfer-state persistence (`sftping.db`) |
 | `di/SecurityModule.kt`, `SftpModule.kt` | 001, 006, 007 | Hilt bindings; `TransferStrategy` binding added in 006; KnownHostsStore→DataStore bind (007) |
 | `di/DatabaseModule.kt` | 003 | Room DB + DAO providers |
@@ -175,8 +199,8 @@
 | `transfer/strategy/` (`TransferStrategy.kt`, `SftpTransferStrategy.kt`, `TransferProgress.kt`) | 006 | Protocol layer (JSch → `Flow<TransferProgress>`) |
 | `transfer/usecase/` (Enqueue/Download/Upload/Pause/Resume/Cancel) | 003, 006 | Transfer business logic (offsets, retries, persistence) |
 | `work/SftpTransferWorker.kt` | 004, 006 | Background FGS worker; delegates to use cases in 006 |
-| `ui/connection/` | 001, 007 | Connection form + VM; trusted-hosts manager + revoke (007) |
-| `ui/files/` | 001, 002 | File browser in 001; upload/download/delete/rename actions in 002 |
+| `ui/connection/` | 001, 007, 008 | Connection form + VM; trusted-hosts manager + revoke (007); password show/hide + default-directory field (008) |
+| `ui/files/` | 001, 002, 008 | File browser in 001; upload/download/delete/rename actions in 002; start dir seeded from `SessionState` (008) |
 | `ui/transfers/` | 002, 004 | Transfers list, progress, pause/resume/cancel, swipe + multi-select |
 
 ## 🐛 Common Bugs Fixed

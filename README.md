@@ -20,6 +20,8 @@ resumable, pausable, background transfers.
   (tap to enter, long-press to select).
 - **Upload & download via the Storage Access Framework** — pick a document to
   upload, choose a destination to save a download.
+- **Convenient connect form.** Show/hide the password, and set an optional default
+  directory (defaults to the host's home) that the file browser opens on connect.
 - **Resumable transfers.** Byte offsets are persisted in Room; interrupted
   transfers resume from where they stopped (JSch `RESUME` mode).
 - **Background transfers.** Each transfer runs in a WorkManager `dataSync`

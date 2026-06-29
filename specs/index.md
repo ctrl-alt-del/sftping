@@ -13,6 +13,7 @@ last_updated: "2026-06-29"
 | 005 | Resilience Hardening & Release | ✅ Done | `transfer/`, `work/`, build config | 004 |
 | 006 | TransferManager Refactor | ✅ Done | `transfer/{strategy,usecase}`, `transfer/TransferManager.kt`, `work/`, `sftp/`, `di/` | — |
 | 007 | Persist Host-Key Trust & Revoke | ✅ Done | `security/`, `di/`, `sftp/`, `ui/connection/` | 001 |
+| 008 | Connect Page: Password Visibility & Default Directory | ✅ Done | `sftp/`, `data/connection/`, `ui/connection/`, `ui/files/` | 001 |
 
 Status: 📋 Planned → 🚧 In Progress → ✅ Done → 📦 Archived
 
