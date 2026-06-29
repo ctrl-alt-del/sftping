@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,12 +35,15 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -90,8 +94,8 @@ fun FilesScreen(
     LaunchedEffect(Unit) { viewModel.navigateToConnection.collect { onNavigateToConnection() } }
     LaunchedEffect(state.error) { state.error?.let { snackbarHostState.showSnackbar(it) } }
 
-    val uploadPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { viewModel.uploadFile(it) }
+    val uploadPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        viewModel.prepareUpload(uris)
     }
 
     var downloadTargetPath by remember { mutableStateOf<String?>(null) }
@@ -101,9 +105,18 @@ fun FilesScreen(
         uri?.let { viewModel.downloadFile(path, it) }
     }
 
+    var downloadBatchPaths by remember { mutableStateOf<List<String>>(emptyList()) }
+    val downloadTreePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { treeUri ->
+        val paths = downloadBatchPaths
+        downloadBatchPaths = emptyList()
+        treeUri?.let { viewModel.downloadFiles(paths, it) }
+    }
+
     Scaffold(
         topBar = {
             if (state.multiSelectMode) {
+                val selectedFiles = state.files.filter { it.path in state.selectedPaths && !it.isDirectory }
+                val selectedFileCount = selectedFiles.size
                 TopAppBar(
                     title = { Text("${state.selectedPaths.size} selected") },
                     navigationIcon = {
@@ -114,11 +127,15 @@ fun FilesScreen(
                     actions = {
                         IconButton(
                             onClick = {
-                                downloadTargetPath = state.selectedPaths.firstOrNull()
-                                val suggestedName = downloadTargetPath?.substringAfterLast("/") ?: "file"
-                                downloadPicker.launch(suggestedName)
+                                if (selectedFileCount == 1) {
+                                    downloadTargetPath = selectedFiles.first().path
+                                    downloadPicker.launch(selectedFiles.first().name)
+                                } else {
+                                    downloadBatchPaths = selectedFiles.map { it.path }
+                                    downloadTreePicker.launch(null)
+                                }
                             },
-                            enabled = state.selectedPaths.size == 1
+                            enabled = selectedFileCount >= 1
                         ) { Icon(Icons.Filled.Download, contentDescription = "Download") }
                         IconButton(
                             onClick = {
@@ -264,6 +281,15 @@ fun FilesScreen(
             onDismissRequest = viewModel::cancelRename
         )
     }
+
+    if (state.showUploadSheet) {
+        UploadSelectionDialog(
+            candidates = state.uploadCandidates,
+            onToggle = viewModel::toggleUploadCandidate,
+            onConfirm = viewModel::confirmUpload,
+            onCancel = viewModel::cancelUpload
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -368,4 +394,69 @@ private fun SortFilterMenu(
             }
         )
     }
+}
+
+@Composable
+private fun UploadSelectionDialog(
+    candidates: List<UploadCandidate>,
+    onToggle: (Uri) -> Unit,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit
+) {
+    val selectedCount = candidates.count { it.selected }
+    AlertDialog(
+        icon = { Icon(Icons.Filled.Upload, contentDescription = null) },
+        title = { Text("Upload files") },
+        text = {
+            LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
+                items(candidates, key = { it.uri }) { c ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onToggle(c.uri) }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(checked = c.selected, onCheckedChange = { onToggle(c.uri) })
+                        Spacer(Modifier.width(4.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                c.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                RemoteFile.formatFileSize(c.size),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (c.alreadyUploaded) {
+                            Spacer(Modifier.width(8.dp))
+                            Icon(
+                                Icons.Filled.CloudDone,
+                                contentDescription = "Already uploaded",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(2.dp))
+                            Text(
+                                "Uploaded",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm, enabled = selectedCount > 0) {
+                Text("Upload ($selectedCount)")
+            }
+        },
+        dismissButton = { TextButton(onClick = onCancel) { Text("Cancel") } },
+        onDismissRequest = onCancel
+    )
 }
