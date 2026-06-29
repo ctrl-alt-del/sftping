@@ -31,12 +31,16 @@ import javax.inject.Inject
 data class FilesUiState(
     val currentPath: String = "/",
     val files: List<RemoteFile> = emptyList(),
+    val rawFiles: List<RemoteFile> = emptyList(),
     val loading: Boolean = false,
     val error: String? = null,
     val pathStack: List<String> = emptyList(),
     val multiSelectMode: Boolean = false,
     val selectedPaths: List<String> = emptyList(),
-    val renamingFile: RemoteFile? = null
+    val renamingFile: RemoteFile? = null,
+    val showHidden: Boolean = false,
+    val sortMode: SortMode = SortMode.NAME_ASC,
+    val searchQuery: String = ""
 )
 
 @HiltViewModel
@@ -57,12 +61,13 @@ class FilesViewModel @Inject constructor(
         viewModelScope.launch {
             uiState = uiState.copy(loading = true, error = null)
             try {
-                val files = sftpClient.listFiles(path)
-                val sorted = files.sortedWith(
-                    compareByDescending<RemoteFile> { it.isDirectory }
-                        .thenBy { it.name.lowercase() }
+                val fetched = sftpClient.listFiles(path)
+                uiState = uiState.copy(
+                    currentPath = path,
+                    rawFiles = fetched,
+                    files = FileView.apply(fetched, uiState.showHidden, uiState.searchQuery, uiState.sortMode),
+                    loading = false
                 )
-                uiState = uiState.copy(currentPath = path, files = sorted, loading = false)
             } catch (e: SftpException) {
                 uiState = uiState.copy(loading = false, error = e.message ?: "List failed")
             } catch (_: IllegalStateException) {
@@ -77,7 +82,7 @@ class FilesViewModel @Inject constructor(
     fun navigateTo(folder: String) {
         val newPath = if (uiState.currentPath == "/") "/$folder"
         else "${uiState.currentPath}/$folder"
-        uiState = uiState.copy(pathStack = uiState.pathStack + uiState.currentPath)
+        uiState = uiState.copy(pathStack = uiState.pathStack + uiState.currentPath, searchQuery = "")
         loadFiles(newPath)
     }
 
@@ -85,11 +90,32 @@ class FilesViewModel @Inject constructor(
         val stack = uiState.pathStack
         if (stack.isEmpty()) return
         val previous = stack.last()
-        uiState = uiState.copy(pathStack = stack.dropLast(1))
+        uiState = uiState.copy(pathStack = stack.dropLast(1), searchQuery = "")
         loadFiles(previous)
     }
 
     fun canGoBack() = uiState.pathStack.isNotEmpty()
+
+    fun setSortMode(mode: SortMode) {
+        uiState = uiState.copy(sortMode = mode)
+        recompute()
+    }
+
+    fun toggleShowHidden() {
+        uiState = uiState.copy(showHidden = !uiState.showHidden)
+        recompute()
+    }
+
+    fun setSearchQuery(query: String) {
+        uiState = uiState.copy(searchQuery = query)
+        recompute()
+    }
+
+    private fun recompute() {
+        uiState = uiState.copy(
+            files = FileView.apply(uiState.rawFiles, uiState.showHidden, uiState.searchQuery, uiState.sortMode)
+        )
+    }
 
     fun clearSelection() {
         uiState = uiState.copy(multiSelectMode = false, selectedPaths = emptyList())

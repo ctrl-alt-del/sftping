@@ -23,6 +23,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -159,6 +160,76 @@ class FilesViewModelTest {
 
         assertEquals("/home/user", vm.uiState.currentPath)
         assertEquals("/home/user/file.txt", vm.uiState.files.first().path)
+    }
+
+    @Test
+    fun `toggleShowHidden reveals dot-files without re-listing`() = runTest {
+        doReturn(
+            listOf(
+                RemoteFile("visible.txt", "/visible.txt", 10, 0, false),
+                RemoteFile(".hidden", "/.hidden", 5, 0, false)
+            )
+        ).`when`(client).listFiles("/")
+
+        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        vm.loadFiles("/")
+        assertFalse(vm.uiState.files.any { it.name == ".hidden" })
+
+        vm.toggleShowHidden()
+        assertTrue(vm.uiState.files.any { it.name == ".hidden" })
+        verify(client, times(1)).listFiles("/")
+    }
+
+    @Test
+    fun `setSearchQuery filters in-memory without re-listing`() = runTest {
+        doReturn(
+            listOf(
+                RemoteFile("alpha.txt", "/alpha.txt", 0, 0, false),
+                RemoteFile("beta.log", "/beta.log", 0, 0, false)
+            )
+        ).`when`(client).listFiles("/")
+
+        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        vm.loadFiles("/")
+
+        vm.setSearchQuery("log")
+        assertEquals(listOf("beta.log"), vm.uiState.files.map { it.name })
+        verify(client, times(1)).listFiles("/")
+    }
+
+    @Test
+    fun `setSortMode reorders in-memory without re-listing`() = runTest {
+        doReturn(
+            listOf(
+                RemoteFile("a.txt", "/a.txt", 0, 0, false),
+                RemoteFile("b.txt", "/b.txt", 0, 0, false)
+            )
+        ).`when`(client).listFiles("/")
+
+        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        vm.loadFiles("/")
+        assertEquals(listOf("a.txt", "b.txt"), vm.uiState.files.map { it.name })
+
+        vm.setSortMode(SortMode.NAME_DESC)
+        assertEquals(listOf("b.txt", "a.txt"), vm.uiState.files.map { it.name })
+        verify(client, times(1)).listFiles("/")
+    }
+
+    @Test
+    fun `navigateTo clears search but keeps sort and hidden`() = runTest {
+        doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
+
+        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        vm.loadFiles("/")
+        vm.setSearchQuery("x")
+        vm.setSortMode(SortMode.SIZE)
+        vm.toggleShowHidden()
+
+        vm.navigateTo("sub")
+
+        assertEquals("", vm.uiState.searchQuery)
+        assertEquals(SortMode.SIZE, vm.uiState.sortMode)
+        assertTrue(vm.uiState.showHidden)
     }
 
     private fun assertNull(value: Any?) {
