@@ -8,7 +8,8 @@ data class ConnectionProfile(
     val port: Int = 22,
     val username: String = "",
     val nickname: String = "",
-    val lastConnected: Long = 0L
+    val lastConnected: Long = 0L,
+    val defaultDirectory: String = ""
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("host", host)
@@ -16,6 +17,7 @@ data class ConnectionProfile(
         put("username", username)
         put("nickname", nickname)
         put("lastConnected", lastConnected)
+        put("defaultDirectory", defaultDirectory)
     }
 
     companion object {
@@ -24,7 +26,8 @@ data class ConnectionProfile(
             port = json.optInt("port", 22),
             username = json.optString("username", ""),
             nickname = json.optString("nickname", ""),
-            lastConnected = json.optLong("lastConnected", 0L)
+            lastConnected = json.optLong("lastConnected", 0L),
+            defaultDirectory = json.optString("defaultDirectory", "")
         )
 
         fun listToJson(profiles: List<ConnectionProfile>): String =

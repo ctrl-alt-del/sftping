@@ -39,4 +39,18 @@ class ConnectionProfileTest {
         val result = ConnectionProfile.listFromJson("[]")
         assertTrue(result.isEmpty())
     }
+
+    @Test
+    fun `defaultDirectory round-trips`() {
+        val original = ConnectionProfile("h", 22, "u", defaultDirectory = "/var/www")
+        val restored = ConnectionProfile.fromJson(original.toJson())
+        assertEquals("/var/www", restored.defaultDirectory)
+        assertEquals(original, restored)
+    }
+
+    @Test
+    fun `fromJson without defaultDirectory defaults to empty`() {
+        val profile = ConnectionProfile.fromJson(org.json.JSONObject("{\"host\":\"h\"}"))
+        assertEquals("", profile.defaultDirectory)
+    }
 }
