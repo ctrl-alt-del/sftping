@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sftping.sftp.ISftpClient
 import com.example.sftping.sftp.RemoteFile
+import com.example.sftping.sftp.SessionState
 import com.example.sftping.sftp.SftpException
 import com.example.sftping.transfer.TransferDirection
 import com.example.sftping.transfer.TransferItem
@@ -42,7 +43,8 @@ data class FilesUiState(
 class FilesViewModel @Inject constructor(
     private val sftpClient: ISftpClient,
     private val transferManager: TransferManager,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val sessionState: SessionState
 ) : ViewModel() {
 
     var uiState by mutableStateOf(FilesUiState())
@@ -51,7 +53,7 @@ class FilesViewModel @Inject constructor(
     private val _navigateToConnection = MutableSharedFlow<Unit>()
     val navigateToConnection: SharedFlow<Unit> = _navigateToConnection
 
-    fun loadFiles(path: String = "/") {
+    fun loadFiles(path: String = sessionState.initialDirectory) {
         viewModelScope.launch {
             uiState = uiState.copy(loading = true, error = null)
             try {
