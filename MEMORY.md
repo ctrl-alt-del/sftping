@@ -151,6 +151,13 @@
   `@HiltViewModel`s without NavHost args or `SavedStateHandle`. Used to carry the Connect
   page's default directory into the Files browser's starting path; read from a default
   function argument so existing call sites don't change.
+- **Raw vs. derived list in a browser ViewModel**: keep the network-fetched listing
+  (`rawFiles`) separate from the displayed list (`files`). Derive `files` through a pure
+  object (`FileView.apply(raw, showHidden, query, sortMode)`) that filters (hidden
+  dot-files, name search) then sorts (folders-first + chosen comparator + name tiebreaker).
+  View-input setters (`setSortMode`/`toggleShowHidden`/`setSearchQuery`) update state and
+  recompute **in-memory** — no re-fetch. The pure `FileView` is JVM-unit-testable; persist
+  sort/hidden across navigation but clear the search query on `navigateTo`/`navigateBack`.
 - **ComponentActivity + @AndroidEntryPoint** = enough for `viewModel()` + `@HiltViewModel`.
   No `hilt-navigation-compose` needed; no NavHost required for tab-based `NavigationSuiteScaffold`.
 - **Material 3 swipe + multi-select list management**: `ElevatedCard` per row with
@@ -180,6 +187,10 @@
   directory) rather than NavHost args or `SavedStateHandle`; keeps the tab-based,
   no-NavHost architecture intact. Default directory is resolved once at connect
   (`enteredDir` or `getHome()`); list failures surface the normal error (no auto-fallback).
+- ADR-008: Files browser computes its displayed listing from a retained `rawFiles` via a
+  pure `FileView` (filter hidden + name search, then folders-first + selected sort). One
+  SFTP list per directory; all view changes are in-memory and testable. Search filters the
+  current directory only (no recursive remote walk).
 
 ## 📂 Code Ownership Map
 
@@ -200,7 +211,7 @@
 | `transfer/usecase/` (Enqueue/Download/Upload/Pause/Resume/Cancel) | 003, 006 | Transfer business logic (offsets, retries, persistence) |
 | `work/SftpTransferWorker.kt` | 004, 006 | Background FGS worker; delegates to use cases in 006 |
 | `ui/connection/` | 001, 007, 008 | Connection form + VM; trusted-hosts manager + revoke (007); password show/hide + default-directory field (008) |
-| `ui/files/` | 001, 002, 008 | File browser in 001; upload/download/delete/rename actions in 002; start dir seeded from `SessionState` (008) |
+| `ui/files/` (incl. `FileView.kt`) | 001, 002, 008, 009 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009) |
 | `ui/transfers/` | 002, 004 | Transfers list, progress, pause/resume/cancel, swipe + multi-select |
 
 ## 🐛 Common Bugs Fixed
