@@ -12,6 +12,7 @@ import com.example.sftping.security.SecretStore
 import com.example.sftping.security.TrustedHost
 import com.example.sftping.sftp.HostKeyResult
 import com.example.sftping.sftp.ISftpClient
+import com.example.sftping.sftp.SessionState
 import com.example.sftping.sftp.SftpException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -31,7 +32,8 @@ data class ConnectionUiState(
     val hostKeyResult: HostKeyResult? = null,
     val recentConnections: List<ConnectionProfile> = emptyList(),
     val trustedHosts: List<TrustedHost> = emptyList(),
-    val showTrustedHosts: Boolean = false
+    val showTrustedHosts: Boolean = false,
+    val defaultDirectory: String = ""
 )
 
 @HiltViewModel
@@ -39,7 +41,8 @@ class ConnectionViewModel @Inject constructor(
     private val sftpClient: ISftpClient,
     private val connectionRepo: ConnectionRepository,
     private val secretStore: SecretStore,
-    private val knownHostsStore: KnownHostsStore
+    private val knownHostsStore: KnownHostsStore,
+    private val sessionState: SessionState
 ) : ViewModel() {
 
     var uiState by mutableStateOf(ConnectionUiState())
@@ -59,6 +62,7 @@ class ConnectionViewModel @Inject constructor(
     fun updatePort(v: String) { uiState = uiState.copy(port = v.filter { it.isDigit() }, error = null) }
     fun updateUsername(v: String) { uiState = uiState.copy(username = v, error = null) }
     fun updatePassword(v: String) { uiState = uiState.copy(password = v, error = null) }
+    fun updateDefaultDirectory(v: String) { uiState = uiState.copy(defaultDirectory = v, error = null) }
     fun toggleAuthMethod() { uiState = uiState.copy(useKeyAuth = !uiState.useKeyAuth) }
     fun toggleSaveCredentials() { uiState = uiState.copy(saveCredentials = !uiState.saveCredentials) }
     fun clearError() { uiState = uiState.copy(error = null) }
@@ -142,10 +146,15 @@ class ConnectionViewModel @Inject constructor(
     }
 
     private suspend fun onConnected() {
+        val enteredDir = uiState.defaultDirectory.trim()
+        sessionState.initialDirectory = enteredDir.ifEmpty {
+            runCatching { sftpClient.homeDirectory() }.getOrNull()?.ifBlank { null } ?: "/"
+        }
         val profile = ConnectionProfile(
             host = uiState.host,
             port = uiState.port.toIntOrNull() ?: 22,
-            username = uiState.username
+            username = uiState.username,
+            defaultDirectory = enteredDir
         )
         connectionRepo.addRecent(profile)
         if (uiState.saveCredentials && uiState.password.isNotEmpty()) {
@@ -161,6 +170,7 @@ class ConnectionViewModel @Inject constructor(
                 port = profile.port.toString(),
                 username = profile.username,
                 password = "",
+                defaultDirectory = profile.defaultDirectory,
                 error = null
             )
             secretStore.unseal(credentialId(profile))?.let {

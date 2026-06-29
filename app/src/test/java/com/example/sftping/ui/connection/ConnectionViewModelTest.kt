@@ -7,6 +7,7 @@ import com.example.sftping.security.SecretStore
 import com.example.sftping.security.TrustedHost
 import com.example.sftping.sftp.HostKeyResult
 import com.example.sftping.sftp.ISftpClient
+import com.example.sftping.sftp.SessionState
 import com.example.sftping.sftp.SftpException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,6 +28,7 @@ import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -36,6 +38,7 @@ class ConnectionViewModelTest {
     private val repo = mock<ConnectionRepository>()
     private val secretStore = mock<SecretStore>()
     private val knownHostsStore = mock<KnownHostsStore>()
+    private val sessionState = SessionState()
     private val testDispatcher = UnconfinedTestDispatcher()
 
     @Before
@@ -49,7 +52,7 @@ class ConnectionViewModelTest {
         doReturn(emptyList<ConnectionProfile>()).`when`(repo).loadRecent()
         doReturn(emptyList<TrustedHost>()).`when`(knownHostsStore).all()
 
-        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore)
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
 
         vm.updateHost("10.0.0.1")
         assertEquals("10.0.0.1", vm.uiState.host)
@@ -70,7 +73,7 @@ class ConnectionViewModelTest {
         doReturn(emptyList<TrustedHost>()).`when`(knownHostsStore).all()
         doReturn(HostKeyResult.Trusted).`when`(client).connect(any(), any(), any(), any())
 
-        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore)
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
         vm.updateHost("10.0.0.1")
         vm.updatePort("22")
         vm.updateUsername("admin")
@@ -90,7 +93,7 @@ class ConnectionViewModelTest {
         doReturn(HostKeyResult.Unknown("10.0.0.1", "SHA256:abc", "ssh-ed25519"))
             .`when`(client).connect(any(), any(), any(), any())
 
-        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore)
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
         vm.updateHost("10.0.0.1")
         vm.updatePort("22")
         vm.updateUsername("admin")
@@ -107,7 +110,7 @@ class ConnectionViewModelTest {
         doAnswer { throw SftpException("Connection refused") }
             .`when`(client).connect(any(), any(), any(), any())
 
-        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore)
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
         vm.updateHost("10.0.0.1")
         vm.updatePort("22")
         vm.updateUsername("admin")
@@ -123,7 +126,7 @@ class ConnectionViewModelTest {
         doReturn(emptyList<TrustedHost>()).`when`(knownHostsStore).all()
         doReturn("decrypted").`when`(secretStore).unseal("10.0.0.1:22:admin")
 
-        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore)
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
         vm.selectRecent(ConnectionProfile("10.0.0.1", 22, "admin"))
 
         assertEquals("10.0.0.1", vm.uiState.host)
@@ -143,7 +146,7 @@ class ConnectionViewModelTest {
             )
         ).`when`(knownHostsStore).all()
 
-        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore)
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
         advanceUntilIdle()
 
         assertEquals(2, vm.uiState.trustedHosts.size)
@@ -155,7 +158,7 @@ class ConnectionViewModelTest {
         doReturn(emptyList<TrustedHost>()).`when`(knownHostsStore).all()
         doReturn(emptyList<TrustedHost>()).`when`(knownHostsStore).all()
 
-        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore)
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
         vm.revokeTrustedHost("example.com")
         advanceUntilIdle()
 
@@ -172,7 +175,7 @@ class ConnectionViewModelTest {
             HostKeyResult.Unknown("10.0.0.1", "SHA256:new", "ssh-rsa")
         ).`when`(client).connect(any(), any(), any(), any())
 
-        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore)
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
         vm.updateHost("10.0.0.1")
         vm.updatePort("22")
         vm.updateUsername("admin")
@@ -186,5 +189,82 @@ class ConnectionViewModelTest {
 
         verify(knownHostsStore).remove("10.0.0.1")
         assertTrue(vm.uiState.hostKeyResult is HostKeyResult.Unknown)
+    }
+
+    @Test
+    fun `updateDefaultDirectory updates state`() = runTest {
+        doReturn(emptyList<ConnectionProfile>()).`when`(repo).loadRecent()
+        doReturn(emptyList<TrustedHost>()).`when`(knownHostsStore).all()
+
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
+        vm.updateDefaultDirectory("/srv")
+
+        assertEquals("/srv", vm.uiState.defaultDirectory)
+    }
+
+    @Test
+    fun `connect with blank directory resolves home as initial directory`() = runTest {
+        doReturn(emptyList<ConnectionProfile>()).`when`(repo).loadRecent()
+        doReturn(emptyList<TrustedHost>()).`when`(knownHostsStore).all()
+        doReturn(HostKeyResult.Trusted).`when`(client).connect(any(), any(), any(), any())
+        doReturn("/home/admin").`when`(client).homeDirectory()
+
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
+        vm.updateHost("10.0.0.1")
+        vm.updatePort("22")
+        vm.updateUsername("admin")
+        vm.updatePassword("pw")
+        vm.connect()
+        advanceUntilIdle()
+
+        assertEquals("/home/admin", sessionState.initialDirectory)
+    }
+
+    @Test
+    fun `connect with explicit directory uses it as initial directory`() = runTest {
+        doReturn(emptyList<ConnectionProfile>()).`when`(repo).loadRecent()
+        doReturn(emptyList<TrustedHost>()).`when`(knownHostsStore).all()
+        doReturn(HostKeyResult.Trusted).`when`(client).connect(any(), any(), any(), any())
+
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
+        vm.updateHost("10.0.0.1")
+        vm.updatePort("22")
+        vm.updateUsername("admin")
+        vm.updatePassword("pw")
+        vm.updateDefaultDirectory("/var/www")
+        vm.connect()
+        advanceUntilIdle()
+
+        assertEquals("/var/www", sessionState.initialDirectory)
+        verify(client, never()).homeDirectory()
+    }
+
+    @Test
+    fun `connect falls back to root when home resolution fails`() = runTest {
+        doReturn(emptyList<ConnectionProfile>()).`when`(repo).loadRecent()
+        doReturn(emptyList<TrustedHost>()).`when`(knownHostsStore).all()
+        doReturn(HostKeyResult.Trusted).`when`(client).connect(any(), any(), any(), any())
+        doAnswer { throw SftpException("no home") }.`when`(client).homeDirectory()
+
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
+        vm.updateHost("10.0.0.1")
+        vm.updatePort("22")
+        vm.updateUsername("admin")
+        vm.updatePassword("pw")
+        vm.connect()
+        advanceUntilIdle()
+
+        assertEquals("/", sessionState.initialDirectory)
+    }
+
+    @Test
+    fun `selectRecent prefills default directory`() = runTest {
+        doReturn(emptyList<ConnectionProfile>()).`when`(repo).loadRecent()
+        doReturn(emptyList<TrustedHost>()).`when`(knownHostsStore).all()
+
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
+        vm.selectRecent(ConnectionProfile("h", 22, "u", defaultDirectory = "/data"))
+
+        assertEquals("/data", vm.uiState.defaultDirectory)
     }
 }
