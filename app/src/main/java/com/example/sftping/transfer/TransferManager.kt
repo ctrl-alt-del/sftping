@@ -2,6 +2,8 @@ package com.example.sftping.transfer
 
 import android.content.Context
 import com.example.sftping.data.transfer.TransferTaskDao
+import com.example.sftping.data.transfer.TransferTaskDirection
+import com.example.sftping.data.transfer.TransferTaskStatus
 import com.example.sftping.transfer.usecase.CancelUseCase
 import com.example.sftping.transfer.usecase.EnqueueUseCase
 import com.example.sftping.transfer.usecase.PauseUseCase
@@ -49,14 +51,23 @@ class TransferManager @Inject constructor(
 
     suspend fun retry(id: Long) = retryUseCase.execute(id)
 
+    suspend fun retryAllFailed() {
+        dao.all()
+            .filter {
+                it.status == TransferTaskStatus.FAILED &&
+                    it.direction == TransferTaskDirection.UPLOAD
+            }
+            .forEach { retryUseCase.execute(it.id) }
+    }
+
     suspend fun getTransferred(id: Long): Long = dao.get(id)?.transferredBytes ?: 0L
 
     /** Remote paths of uploads that have completed — used to flag already-uploaded files. */
     suspend fun completedUploadPaths(): Set<String> =
         dao.all()
             .filter {
-                it.direction == com.example.sftping.data.transfer.TransferTaskDirection.UPLOAD &&
-                    it.status == com.example.sftping.data.transfer.TransferTaskStatus.COMPLETED
+                it.direction == TransferTaskDirection.UPLOAD &&
+                    it.status == TransferTaskStatus.COMPLETED
             }
             .map { it.remotePath }
             .toSet()
@@ -65,17 +76,17 @@ class TransferManager @Inject constructor(
 private fun com.example.sftping.data.transfer.TransferTask.toTransferItem() = TransferItem(
     id = id, fileName = fileName, remotePath = remotePath,
     direction = when (direction) {
-        com.example.sftping.data.transfer.TransferTaskDirection.DOWNLOAD -> TransferDirection.DOWNLOAD
-        com.example.sftping.data.transfer.TransferTaskDirection.UPLOAD -> TransferDirection.UPLOAD
+        TransferTaskDirection.DOWNLOAD -> TransferDirection.DOWNLOAD
+        TransferTaskDirection.UPLOAD -> TransferDirection.UPLOAD
     },
     totalBytes = totalBytes, transferredBytes = transferredBytes,
     lastModified = lastModified,
     status = when (status) {
-        com.example.sftping.data.transfer.TransferTaskStatus.RUNNING -> TransferStatus.RUNNING
-        com.example.sftping.data.transfer.TransferTaskStatus.COMPLETED -> TransferStatus.COMPLETED
-        com.example.sftping.data.transfer.TransferTaskStatus.FAILED -> TransferStatus.FAILED
-        com.example.sftping.data.transfer.TransferTaskStatus.PAUSED -> TransferStatus.PAUSED
-        com.example.sftping.data.transfer.TransferTaskStatus.PENDING -> TransferStatus.RUNNING
-        com.example.sftping.data.transfer.TransferTaskStatus.CANCELLED -> TransferStatus.CANCELLED
+        TransferTaskStatus.RUNNING -> TransferStatus.RUNNING
+        TransferTaskStatus.COMPLETED -> TransferStatus.COMPLETED
+        TransferTaskStatus.FAILED -> TransferStatus.FAILED
+        TransferTaskStatus.PAUSED -> TransferStatus.PAUSED
+        TransferTaskStatus.PENDING -> TransferStatus.RUNNING
+        TransferTaskStatus.CANCELLED -> TransferStatus.CANCELLED
     }
 )

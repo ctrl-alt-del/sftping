@@ -16,8 +16,12 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.never
+import org.mockito.kotlin.times
 
 class TransferManagerTest {
 
@@ -85,6 +89,78 @@ class TransferManagerTest {
 
         assertEquals(setOf("/d/a.txt"), manager.completedUploadPaths())
     }
+
+    @Test
+    fun `retryAllFailed retries only FAILED uploads`() = runTest {
+        val dao = FakeDao()
+        val context = mock<Context>()
+        val manager = TransferManager(dao, context, mockEnqueue, mockPause, mockResume, mockCancel, mockRetry)
+        dao.insert(
+            TransferTask(
+                remotePath = "/a", fileName = "a.txt", totalBytes = 10, transferredBytes = 0,
+                direction = TransferTaskDirection.UPLOAD, status = TransferTaskStatus.FAILED
+            )
+        )
+        dao.insert(
+            TransferTask(
+                remotePath = "/b", fileName = "b.txt", totalBytes = 10, transferredBytes = 0,
+                direction = TransferTaskDirection.UPLOAD, status = TransferTaskStatus.FAILED
+            )
+        )
+        dao.insert(
+            TransferTask(
+                remotePath = "/c", fileName = "c.txt", totalBytes = 10, transferredBytes = 0,
+                direction = TransferTaskDirection.DOWNLOAD, status = TransferTaskStatus.FAILED
+            )
+        )
+        dao.insert(
+            TransferTask(
+                remotePath = "/d", fileName = "d.txt", totalBytes = 10, transferredBytes = 10,
+                direction = TransferTaskDirection.UPLOAD, status = TransferTaskStatus.COMPLETED
+            )
+        )
+
+        manager.retryAllFailed()
+
+        verify(mockRetry, times(2)).execute(org.mockito.kotlin.any())
+        verify(mockRetry, never()).execute(3L)
+        verify(mockRetry, never()).execute(4L)
+    }
+
+    @Test
+    fun `retryAllFailed is no-op when no failed uploads`() = runTest {
+        val dao = FakeDao()
+        val context = mock<Context>()
+        val manager = TransferManager(dao, context, mockEnqueue, mockPause, mockResume, mockCancel, mockRetry)
+        dao.insert(
+            TransferTask(
+                remotePath = "/a", fileName = "a.txt", totalBytes = 10, transferredBytes = 0,
+                direction = TransferTaskDirection.DOWNLOAD, status = TransferTaskStatus.FAILED
+            )
+        )
+        dao.insert(
+            TransferTask(
+                remotePath = "/b", fileName = "b.txt", totalBytes = 10, transferredBytes = 10,
+                direction = TransferTaskDirection.UPLOAD, status = TransferTaskStatus.COMPLETED
+            )
+        )
+
+        manager.retryAllFailed()
+
+        verify(mockRetry, never()).execute(org.mockito.kotlin.any())
+    }
+
+    @Test
+    fun `retryAllFailed is no-op with empty dao`() = runTest {
+        val dao = FakeDao()
+        val context = mock<Context>()
+        val manager = TransferManager(dao, context, mockEnqueue, mockPause, mockResume, mockCancel, mockRetry)
+
+        manager.retryAllFailed()
+
+        verify(mockRetry, never()).execute(org.mockito.kotlin.any())
+    }
+
 }
 
 private class FakeDao : TransferTaskDao {
