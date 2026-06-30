@@ -1,10 +1,14 @@
 package com.example.sftping.ui.transfers
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +32,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Upload
@@ -37,6 +42,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +65,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,9 +85,12 @@ private val dateTimeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getD
 fun TransfersScreen(viewModel: TransfersViewModel = viewModel()) {
     val items by viewModel.items.collectAsState()
     val active = items.filter { it.status in listOf(TransferStatus.RUNNING, TransferStatus.PAUSED) }
-    val done = items.filter { it.status !in listOf(TransferStatus.RUNNING, TransferStatus.PAUSED) }
+    val failed = items.filter { it.status == TransferStatus.FAILED }
+    val completed = items.filter { it.status == TransferStatus.COMPLETED }
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     var detailItem by remember { mutableStateOf<TransferItem?>(null) }
+    var failedExpanded by remember { mutableStateOf(true) }
+    var completedExpanded by remember { mutableStateOf(true) }
     val selectMode = selectedIds.isNotEmpty()
 
     if (items.isEmpty()) {
@@ -124,8 +134,8 @@ fun TransfersScreen(viewModel: TransfersViewModel = viewModel()) {
                 TopAppBar(
                     title = { Text("Transfers") },
                     actions = {
-                        if (done.isNotEmpty()) {
-                            TextButton(onClick = { selectedIds = done.map { it.id }.toSet() }) {
+                        if (completed.isNotEmpty()) {
+                            TextButton(onClick = { selectedIds = completed.map { it.id }.toSet() }) {
                                 Text("Select")
                             }
                         }
@@ -141,50 +151,95 @@ fun TransfersScreen(viewModel: TransfersViewModel = viewModel()) {
             if (active.isNotEmpty()) {
                 item {
                     Spacer(Modifier.height(4.dp))
-                    Text(
-                        "ACTIVE",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+                    SectionHeader(
+                        title = "ACTIVE",
+                        count = active.size,
+                        color = MaterialTheme.colorScheme.primary,
+                        showChevron = false
                     )
-                    HorizontalDivider()
-                    Spacer(Modifier.height(4.dp))
                 }
                 items(active, key = { it.id }) { item ->
                     ActiveCard(item, onCancel = { viewModel.cancel(item.id) })
                 }
             }
-            if (done.isNotEmpty()) {
+            if (failed.isNotEmpty()) {
                 item {
                     Spacer(Modifier.height(12.dp))
-                    Text(
-                        "COMPLETED",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
-                    )
-                    HorizontalDivider()
-                    Spacer(Modifier.height(4.dp))
-                }
-                items(done, key = { it.id }) { item ->
-                    DoneCard(
-                        item = item,
-                        selected = item.id in selectedIds,
-                        selectMode = selectMode,
-                        onToggle = {
-                            selectedIds = if (item.id in selectedIds) selectedIds - item.id
-                            else selectedIds + item.id
-                        },
-                        onTap = { detailItem = it },
-                        onDelete = { viewModel.cancel(item.id) },
-                        onRetry = if (item.status == TransferStatus.FAILED &&
-                            item.direction == TransferDirection.UPLOAD
-                        ) {
-                            { viewModel.retry(item.id) }
-                        } else {
-                            null
+                    SectionHeader(
+                        title = "FAILED",
+                        count = failed.size,
+                        color = MaterialTheme.colorScheme.error,
+                        expanded = failedExpanded,
+                        onToggle = { failedExpanded = !failedExpanded },
+                        showChevron = true,
+                        trailing = {
+                            FilledTonalButton(onClick = { viewModel.retryAllFailed() }) {
+                                Text("Retry all")
+                            }
                         }
                     )
+                }
+                item {
+                    AnimatedVisibility(
+                        visible = failedExpanded,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            failed.forEach { item ->
+                                DoneCard(
+                                    item = item,
+                                    selected = false,
+                                    selectMode = false,
+                                    onToggle = {},
+                                    onTap = { detailItem = it },
+                                    onDelete = { viewModel.cancel(item.id) },
+                                    onRetry = if (item.direction == TransferDirection.UPLOAD) {
+                                        { viewModel.retry(item.id) }
+                                    } else {
+                                        null
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            if (completed.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(12.dp))
+                    SectionHeader(
+                        title = "COMPLETED",
+                        count = completed.size,
+                        color = MaterialTheme.colorScheme.primary,
+                        expanded = completedExpanded,
+                        onToggle = { completedExpanded = !completedExpanded },
+                        showChevron = true
+                    )
+                }
+                item {
+                    AnimatedVisibility(
+                        visible = completedExpanded,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            completed.forEach { item ->
+                                DoneCard(
+                                    item = item,
+                                    selected = item.id in selectedIds,
+                                    selectMode = selectMode,
+                                    onToggle = {
+                                        selectedIds = if (item.id in selectedIds) selectedIds - item.id
+                                        else selectedIds + item.id
+                                    },
+                                    onTap = { detailItem = it },
+                                    onDelete = { viewModel.cancel(item.id) },
+                                    onRetry = null
+                                )
+                            }
+                        }
+                    }
                 }
             }
             item { Spacer(Modifier.height(80.dp)) }
@@ -204,6 +259,62 @@ fun TransfersScreen(viewModel: TransfersViewModel = viewModel()) {
             }
         )
     }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    count: Int,
+    color: androidx.compose.ui.graphics.Color,
+    expanded: Boolean = true,
+    onToggle: () -> Unit = {},
+    showChevron: Boolean = true,
+    trailing: @Composable (() -> Unit)? = null
+) {
+    val rotation by animateFloatAsState(if (expanded) 0f else -90f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (showChevron) Modifier.clickable { onToggle() } else Modifier)
+            .padding(horizontal = 4.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier
+                .size(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(color)
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            "($count)",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        )
+        Spacer(Modifier.weight(1f))
+        if (trailing != null) {
+            trailing()
+            Spacer(Modifier.width(8.dp))
+        }
+        if (showChevron) {
+            Icon(
+                Icons.Filled.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                modifier = Modifier
+                    .size(20.dp)
+                    .rotate(rotation),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+    HorizontalDivider()
+    Spacer(Modifier.height(4.dp))
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

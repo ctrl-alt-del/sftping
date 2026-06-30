@@ -21,4 +21,8 @@ class TransfersViewModel @Inject constructor(
     fun retry(id: Long) {
         viewModelScope.launch { manager.retry(id) }
     }
+
+    fun retryAllFailed() {
+        viewModelScope.launch { manager.retryAllFailed() }
+    }
 }
