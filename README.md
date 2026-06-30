@@ -29,7 +29,7 @@ resumable, pausable, background transfers.
 - **Background transfers.** Each transfer runs in a WorkManager `dataSync`
   foreground service with a live progress notification, surviving app
   backgrounding and screen-off.
-- **Pause / resume / cancel** from the Transfers screen, and **retry a failed upload** individually.
+- **Pause / resume / cancel** from the Transfers screen, and **retry a failed upload** individually or **retry all failed uploads** at once. Transfers are grouped into Active, Failed (collapsible), and Completed (collapsible) sections.
 - **Encrypted credentials at rest.** Passwords are sealed with an
   **Android Keystore** AES-256-GCM key and stored as ciphertext in DataStore,
   separate from the (non-secret) connection profile.
@@ -92,7 +92,7 @@ app/src/main/java/com/example/sftping/
 ├── ui/
 │   ├── connection/            Connect form + host-key dialog (ViewModel)
 │   ├── files/                 Remote browser, multi-select, SAF upload/download
-│   ├── transfers/             Active/completed list, swipe-to-cancel, detail dialog
+│   ├── transfers/             Active/Failed/Completed grouped list, collapsible sections, retry-all, swipe-to-cancel, detail dialog
 │   └── theme/                 Material 3 theme (dynamic color on Android 12+)
 ├── transfer/
 │   ├── TransferManager.kt     Thin @Singleton StateFlow holder over the DAO

@@ -139,6 +139,12 @@
   (`enteredDir.ifBlank { homeDirectory() } ?: "/"`); do **not** auto-fallback on a later
   list failure — the Files screen shows its normal error. Mockito returns `""` for an
   unstubbed suspend `homeDirectory()`, so the resolution is null/blank-safe in tests.
+- `#ui` **Collapsible section headers** with `AnimatedVisibility` + `animateFloatAsState` on a
+  chevron icon: wrap the collapsible content in a single `item { AnimatedVisibility { Column {
+  forEach { ... } } } }` block. The `SectionHeader` composable takes `trailing:
+  @Composable (() -> Unit)?` for per-section action buttons (e.g., "Retry all"). For
+  zero-item groups, wrap the section in `if (group.isNotEmpty())` — no header, no ghost
+  toggle. `Icons.Filled.KeyboardArrowDown` is in material-icons-core (no dependency bump).
 
 ## 🔧 Patterns That Worked
 <!-- Reusable patterns discovered across features -->
@@ -208,6 +214,16 @@
   "N selected" + delete action. Completed rows show `"Completed on yyyy-MM-dd HH:mm:ss"`.
   Tap opens a detail `AlertDialog` with file name, mono-spaced path, size, direction,
   colored status label, and formatted datetime.
+- **`SectionHeader` with trailing slot**: a reusable composable that renders a colored dot,
+  a group title + count badge, an optional chevron with rotation animation
+  (`animateFloatAsState` + `Modifier.rotate()`), an optional trailing `@Composable` slot
+  for action buttons, and a `HorizontalDivider`. Clickable only when `showChevron` is true.
+  Works in both `LazyColumn` `item {}` blocks and regular `Column` layouts.
+- **Batch operation via per-item reuse**: `retryAllFailed()` queries `dao.all()`, filters
+  by status+direction, then loops through the existing per-item `RetryUseCase`. No new
+  use case class needed; the filter ensures only retryable items are processed. The
+  individual `RetryUseCase` guard (FAILED+UPLOAD check) serves as a belt-and-suspenders
+  safety net.
 
 ## 📐 Architecture Decisions
 <!-- ADRs made during spec-driven development -->
@@ -243,6 +259,11 @@
 - ADR-011: Retry of a failed upload re-enqueues the existing task (resume mechanics) after
   resetting `transferredBytes` to 0 (fresh OVERWRITE, avoiding RESUME-on-fresh). Scoped to
   uploads — downloads need a live SAF-copy step the Transfers page can't replicate.
+- ADR-012: Transfers screen groups into three sections: Active (RUNNING+PAUSED, always
+  visible), Failed (FAILED, collapsible with "Retry all" button), Completed (COMPLETED,
+  collapsible with multi-select). Grouping is pure Compose — computed from the existing
+  `manager.items` StateFlow with no new DAO queries. "Retry all" reuses the per-item
+  `RetryUseCase` in a loop.
 
 ## 📂 Code Ownership Map
 
@@ -258,13 +279,13 @@
 | `data/transfer/TransferTask.kt`, `TransferDatabase.kt`, `TransferTaskDao.kt` | 003 | Room transfer-state persistence (`sftping.db`) |
 | `di/SecurityModule.kt`, `SftpModule.kt` | 001, 006, 007 | Hilt bindings; `TransferStrategy` binding added in 006; KnownHostsStore→DataStore bind (007) |
 | `di/DatabaseModule.kt` | 003 | Room DB + DAO providers |
-| `transfer/TransferItem.kt`, `TransferManager.kt` | 002, 003, 006, 011, 012 | StateFlow holder in 002; Room-backed in 003; thinned to coordinator in 006; `completedUploadPaths` for uploaded-file memory (011); `retry()` (012) |
+| `transfer/TransferItem.kt`, `TransferManager.kt` | 002, 003, 006, 011, 012, 013 | StateFlow holder in 002; Room-backed in 003; thinned to coordinator in 006; `completedUploadPaths` for uploaded-file memory (011); `retry()` (012); `retryAllFailed()` (013) |
 | `transfer/strategy/` (`TransferStrategy.kt`, `SftpTransferStrategy.kt`, `TransferProgress.kt`) | 006 | Protocol layer (JSch → `Flow<TransferProgress>`) |
 | `transfer/usecase/` (Enqueue/Download/Upload/Pause/Resume/Cancel/Retry) | 003, 006, 012 | Transfer business logic (offsets, retries, persistence); `RetryUseCase` for failed uploads (012) |
 | `work/SftpTransferWorker.kt` | 004, 006 | Background FGS worker; delegates to use cases in 006; upload success deletes the real cache file (cleanup fix) |
 | `ui/connection/` | 001, 007, 008, 010 | Connection form + VM; trusted-hosts manager + revoke (007); password show/hide + default-directory field (008); bumps `SessionState.epoch` on connect (010) |
 | `ui/files/` (incl. `FileView.kt`, `UploadCandidate.kt`) | 001, 002, 008, 009, 010, 011 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009); `onEnterScreen` remembers last path across tab switches (010); batch upload sheet + multi-download + uploaded memory (011) |
-| `ui/transfers/` | 002, 004, 012 | Transfers list, progress, pause/resume/cancel, swipe + multi-select; retry failed uploads (012) |
+| `ui/transfers/` | 002, 004, 012, 013 | Transfers list, progress, pause/resume/cancel, swipe + multi-select; retry failed uploads (012); collapsible sections + retry-all (013) |
 
 ## 🐛 Common Bugs Fixed
 <!-- Real defects hit during development + the fix. See feature takeaways.md for context. -->
