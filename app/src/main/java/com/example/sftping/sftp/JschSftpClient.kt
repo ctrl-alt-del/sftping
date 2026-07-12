@@ -17,7 +17,8 @@ import javax.inject.Singleton
 
 @Singleton
 class JschSftpClient @Inject constructor(
-    private val knownHosts: KnownHostsStore
+    private val knownHosts: KnownHostsStore,
+    private val sessionState: SessionState
 ) : ISftpClient {
 
     private var session: com.jcraft.jsch.Session? = null
@@ -35,6 +36,7 @@ class JschSftpClient @Inject constructor(
             setServerAliveInterval(30_000)
             connect(10_000)
         }
+        sessionState.setConnected(true)
         val hostKey = session?.hostKey ?: throw SftpException("No host key received")
         val keyBytes = java.util.Base64.getDecoder().decode(hostKey.key)
         val fingerprint = Fingerprint.sha256(keyBytes)
@@ -92,6 +94,32 @@ class JschSftpClient @Inject constructor(
 
     override suspend fun disconnect() {
         withContext(Dispatchers.IO) { disconnectInternal() }
+    }
+
+    override suspend fun readText(path: String): String = withContext(Dispatchers.IO) {
+        val ch = openChannel()
+        try {
+            ch.get(path).use { input ->
+                input.readBytes().toString(Charsets.UTF_8)
+            }
+        } catch (e: JschSftpException) {
+            throw SftpException("Failed to read $path", e)
+        } finally {
+            ch.disconnect()
+        }
+    }
+
+    override suspend fun writeText(path: String, content: String) = withContext(Dispatchers.IO) {
+        val ch = openChannel()
+        try {
+            content.byteInputStream(Charsets.UTF_8).use { input ->
+                ch.put(input, path, ChannelSftp.OVERWRITE)
+            }
+        } catch (e: JschSftpException) {
+            throw SftpException("Failed to write $path", e)
+        } finally {
+            ch.disconnect()
+        }
     }
 
     override suspend fun delete(path: String) = withContext(Dispatchers.IO) {
@@ -180,6 +208,7 @@ class JschSftpClient @Inject constructor(
     private fun disconnectInternal() {
         session?.disconnect()
         session = null
+        sessionState.setConnected(false)
     }
 
     private fun deleteRecursive(ch: ChannelSftp, path: String) {

@@ -11,6 +11,12 @@ interface ISftpClient {
 
     suspend fun listFiles(path: String): List<RemoteFile>
 
+    /** Read a remote text file fully as a UTF-8 string. */
+    suspend fun readText(path: String): String
+
+    /** Overwrite a remote text file with [content] encoded as UTF-8. */
+    suspend fun writeText(path: String, content: String)
+
     suspend fun disconnect()
 
     suspend fun delete(path: String)
