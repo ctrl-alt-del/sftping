@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import com.example.sftping.ui.connection.ConnectionScreen
+import com.example.sftping.ui.editor.EditorScreen
 import com.example.sftping.ui.files.FilesScreen
 import com.example.sftping.ui.theme.SftpingTheme
 import com.example.sftping.ui.transfers.TransfersScreen
@@ -70,6 +72,7 @@ fun SftpingShell() {
                 onNavigateToConnection = { currentDestination = AppDestinations.CONNECT }
             )
             AppDestinations.TRANSFERS -> TransfersScreen()
+            AppDestinations.EDITOR -> EditorScreen()
         }
     }
 }
@@ -99,4 +102,5 @@ private enum class AppDestinations(
     CONNECT("Connect", Icons.Filled.Cloud),
     FILES("Files", Icons.Filled.Folder),
     TRANSFERS("Transfers", Icons.Filled.SwapVert),
+    EDITOR("Editor", Icons.Filled.Edit),
 }
