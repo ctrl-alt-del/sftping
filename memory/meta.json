@@ -1,0 +1,1732 @@
+{
+  "version": "1.0.0",
+  "created_at": "2026-07-03T12:45:33Z",
+  "updated_at": "2026-07-03T12:45:33Z",
+  "entries": [
+    {
+      "id": "mem-001",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build"
+      ],
+      "source": "build",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "Hilt Gradle plugin must be >= 2.59.2 for AGP 9.x",
+      "body": "Hilt Gradle plugin must be >= 2.59.2 for AGP 9.x compatibility. Versions <= 2.56.2 crash with \"Android BaseExtension not found\" because AGP 9 removed the old BaseExtension API.",
+      "source_ref": "MEMORY.md:7-8"
+    },
+    {
+      "id": "mem-002",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build"
+      ],
+      "source": "build",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "KSP versioning is independent of Kotlin",
+      "body": "KSP versioning is independent of Kotlin. For Kotlin 2.2.10, use KSP 2.3.9, not 2.2.10-1.0.x (the <kotlin>-<ksp> pattern is dead for KSP2).",
+      "source_ref": "MEMORY.md:9-10"
+    },
+    {
+      "id": "mem-003",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build"
+      ],
+      "source": "build",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "androidx.core:core-ktx:1.19.0 requires compileSdk >= 37",
+      "body": "androidx.core:core-ktx:1.19.0 requires compileSdk >= 37. If compileSdk is 36, bump it or downgrade core-ktx.",
+      "source_ref": "MEMORY.md:11-12"
+    },
+    {
+      "id": "mem-004",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "source": "004",
+      "related": [
+        "mem-005",
+        "mem-055",
+        "mem-069"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "Foreground service must declare type on API 34+ (ForegroundInfo)",
+      "body": "On API 34+ (targetSdk >= 34), every foreground service must declare its type. WorkManager's ForegroundInfo constructor must pass FOREGROUND_SERVICE_TYPE_DATA_SYNC as the third argument, otherwise InvalidForegroundServiceTypeException: Starting FGS with type none crashes the app at runtime.",
+      "source_ref": "MEMORY.md:13-16"
+    },
+    {
+      "id": "mem-005",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "source": "004",
+      "related": [
+        "mem-004",
+        "mem-070"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "WorkManager SystemForegroundService needs a manifest merge directive for foregroundServiceType",
+      "body": "WorkManager's bundled SystemForegroundService has no foregroundServiceType in its library manifest (value 0x00000000). Even after fixing ForegroundInfo, a second crash occurs: 0x00000001 is not a subset of 0x00000000. Fix by adding a manifest merge directive: <service android:name=\"androidx.work.impl.foreground.SystemForegroundService\" android:foregroundServiceType=\"dataSync\" tools:node=\"merge\" />. Both fixes are required - ForegroundInfo carries the type at runtime, the manifest declares it at install time.",
+      "source_ref": "MEMORY.md:17-25"
+    },
+    {
+      "id": "mem-006",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "source": "002",
+      "related": [
+        "mem-007",
+        "mem-065",
+        "mem-075"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "Cache file lifecycle across ViewModel<->Worker boundary needs identical naming",
+      "body": "Files written by the ViewModel (from SAF) and consumed by a background Worker must use identical naming conventions. Upload: copy SAF -> temp cache -> enqueue() -> get taskId -> rename cache to match the Worker's formula (sftping_ul_<taskId>_<fileName>). Download: Worker creates cache at sftping_dl_<taskId>_<fileName>; ViewModel computes the same path for post-transfer copy to SAF. Both sides use task.id + task.fileName.",
+      "source_ref": "MEMORY.md:26-31"
+    },
+    {
+      "id": "mem-007",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "source": "002",
+      "related": [
+        "mem-006",
+        "mem-065"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "Never delete cache files before the Worker consumes them",
+      "body": "cacheFile.delete() in the ViewModel right after enqueue() will cause the Worker to find a missing file, return Result.failure() / Result.retry(), and the transfer never completes.",
+      "source_ref": "MEMORY.md:32-34"
+    },
+    {
+      "id": "mem-008",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui",
+        "transfers"
+      ],
+      "source": "002",
+      "related": [
+        "mem-021"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Transfers are asynchronous - observe TransferManager.items for COMPLETED",
+      "body": "The ViewModel must observe TransferManager.items for COMPLETED status on the task ID before refreshing the file list or copying download results. Never assume enqueue() completes synchronously.",
+      "source_ref": "MEMORY.md:35-37"
+    },
+    {
+      "id": "mem-009",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build"
+      ],
+      "source": "001",
+      "related": [
+        "mem-062"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "@HiltAndroidApp class name must not collide with a composable",
+      "body": "@HiltAndroidApp Application class name must not collide with any composable function or other class in the same package. Renamed SftpingApp -> SftpingApplication after KSP overload conflict.",
+      "source_ref": "MEMORY.md:38-39"
+    },
+    {
+      "id": "mem-010",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "testing"
+      ],
+      "source": "001",
+      "related": [
+        "mem-064"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "org.json is an Android framework class, unavailable in JVM unit tests",
+      "body": "org.json (JSONObject, JSONArray) is an Android framework class and is not available in JVM unit tests. Add org.json:json as testImplementation for JVM test coverage.",
+      "source_ref": "MEMORY.md:40-41"
+    },
+    {
+      "id": "mem-011",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "security"
+      ],
+      "source": "001",
+      "related": [
+        "mem-039",
+        "mem-063"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "JSch HostKey.getKey() returns a base64-encoded String, not bytes",
+      "body": "JSch HostKey.getKey() returns a base64-encoded String, not a ByteArray. Decode with java.util.Base64.getDecoder().decode(key) before computing the SHA-256 fingerprint.",
+      "source_ref": "MEMORY.md:42-43"
+    },
+    {
+      "id": "mem-012",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "source": "003",
+      "related": [
+        "mem-013",
+        "mem-024",
+        "mem-029",
+        "mem-030",
+        "mem-067"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "JSch RESUME stat()s the local file on download; ensure it exists first",
+      "body": "JSch ChannelSftp.RESUME mode calls stat() on the local destination file to determine the byte offset. If the file doesn't exist (fresh download), the get(..., RESUME) call throws SftpException. Always ensure the local file exists before using RESUME mode: if (!file.exists()) file.createNewFile().",
+      "source_ref": "MEMORY.md:44-47"
+    },
+    {
+      "id": "mem-013",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "source": "fix-upload",
+      "related": [
+        "mem-012",
+        "mem-029",
+        "mem-061",
+        "mem-074"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "JSch RESUME stat()s the remote file on upload; route by offset",
+      "body": "put(..., ChannelSftp.RESUME) stat()s the remote destination to find the resume offset, so a fresh upload (remote file absent) throws SftpException. You can't pre-create the remote file, so only use RESUME when resuming - route by offset: skip == 0 -> put(..., OVERWRITE); skip > 0 -> put(..., RESUME). Never use RESUME unconditionally for uploads.",
+      "source_ref": "MEMORY.md:48-52"
+    },
+    {
+      "id": "mem-014",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "source": "fix-concurrency",
+      "related": [
+        "mem-075"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "ChannelSftp is not thread-safe - open a fresh channel per operation",
+      "body": "Never share one channel across concurrent operations. Background transfer workers and the UI (listFiles, refresh, navigation, post-upload loadFiles) all run on Dispatchers.IO against the same @Singleton client, so a shared channel desyncs the SFTP request/response stream. Open a fresh ChannelSftp per operation over the shared Session (session.openChannel(\"sftp\") -> connect() -> try { ... } finally { ch.disconnect() }); SSH multiplexes channels safely. Tell-tale of a desync: JSch throws with a garbage status id and empty message (e.g. 1936916480 = 0x73730000 = \"ss\"); a real server error has a small status code (3,4,...) AND a message.",
+      "source_ref": "MEMORY.md:53-61"
+    },
+    {
+      "id": "mem-015",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "source": "006",
+      "related": [
+        "mem-072"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "Use close() not awaitClose{} for single-shot callbackFlow SFTP ops",
+      "body": "callbackFlow { ... awaitClose { } } is wrong for single-shot operations like SFTP downloads/uploads. awaitClose suspends the producer coroutine indefinitely after the operation completes, causing the collect {} caller to hang forever. Use close() instead - it signals normal channel completion. This bug caused Worker RETRY loops, TransfersScreen stuck on RUNNING, dao.updateStatus(COMPLETED) never reached, and SAF destination never populated.",
+      "source_ref": "MEMORY.md:62-67"
+    },
+    {
+      "id": "mem-016",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui"
+      ],
+      "source": "001",
+      "related": [
+        "mem-049"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "viewModel() works with @HiltViewModel + @AndroidEntryPoint Activity",
+      "body": "viewModel() from lifecycle-viewmodel-compose works with @HiltViewModel + @AndroidEntryPoint on the Activity - no need for hilt-navigation-compose or hiltViewModel().",
+      "source_ref": "MEMORY.md:68-69"
+    },
+    {
+      "id": "mem-017",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui"
+      ],
+      "source": "",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "ViewModel by mutableStateOf needs explicit runtime imports",
+      "body": "ViewModel properties using by mutableStateOf(...) need explicit imports: androidx.compose.runtime.getValue, setValue, mutableStateOf.",
+      "source_ref": "MEMORY.md:70-71"
+    },
+    {
+      "id": "mem-018",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui"
+      ],
+      "source": "002",
+      "related": [
+        "mem-066"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "rememberLauncherForActivityResult captures by reference; declare state first",
+      "body": "rememberLauncherForActivityResult closures capture by reference at compose time. Declare mutable state variables before the launcher that references them, or the compose compiler will report the variable as uninitialized.",
+      "source_ref": "MEMORY.md:72-74"
+    },
+    {
+      "id": "mem-019",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui"
+      ],
+      "source": "",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "withContext(Dispatchers.IO) is suspend; callers must be suspend",
+      "body": "withContext(Dispatchers.IO) is a suspend function - any helper that uses it must be suspend. A non-suspend fun returning = withContext(...) will not compile.",
+      "source_ref": "MEMORY.md:75-76"
+    },
+    {
+      "id": "mem-020",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui"
+      ],
+      "source": "",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "SAF _display_name query can return null; fall back to lastPathSegment",
+      "body": "SAF ContentResolver.query for _display_name can return null on some content providers. Always fall back to uri.lastPathSegment for the file name.",
+      "source_ref": "MEMORY.md:77-78"
+    },
+    {
+      "id": "mem-021",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui",
+        "data"
+      ],
+      "source": "",
+      "related": [
+        "mem-008"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "TransferManager + TransfersViewModel: @Singleton StateFlow holder + thin VM",
+      "body": "A @Singleton state holder publishes StateFlow<List<TransferItem>>, wrapped by a thin @HiltViewModel for Compose access. Scales naturally to Room-backed persistence in 003.",
+      "source_ref": "MEMORY.md:79-81"
+    },
+    {
+      "id": "mem-022",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui"
+      ],
+      "source": "002",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Multi-select in LazyColumn via combinedClickable",
+      "body": "combinedClickable: tap = enter/action, long-press = toggle selection. Selection state is a List<String> of paths in the ViewModel. The app bar switches to a contextual bar when selection is active.",
+      "source_ref": "MEMORY.md:82-84"
+    },
+    {
+      "id": "mem-023",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "data"
+      ],
+      "source": "003",
+      "related": [
+        "mem-026"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Room suspend DAO functions can't be called from non-suspend callbacks",
+      "body": "Room's generated suspend DAO functions (e.g. dao.updateProgress()) cannot be called from non-suspend callbacks like progress lambdas (Long, Long) -> Unit. Wrap them in scope.launch { dao.updateProgress(...) } to bridge the gap.",
+      "source_ref": "MEMORY.md:85-87"
+    },
+    {
+      "id": "mem-024",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "source": "003",
+      "related": [
+        "mem-012"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "JSch RESUME handles remote offset; manually skip() the upload InputStream",
+      "body": "JSch ChannelSftp.RESUME handles remote offset automatically: get(src, dst, monitor, RESUME) skips localFile.length() bytes on the remote; put(stream, dst, monitor, RESUME) skips remoteFile.length() bytes. However, for upload the InputStream should be manually skip()ped to avoid re-reading already-uploaded bytes.",
+      "source_ref": "MEMORY.md:88-91"
+    },
+    {
+      "id": "mem-025",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "testing"
+      ],
+      "source": "",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "runTest with CoroutineScope(Dispatchers.IO) uses real time, not virtual",
+      "body": "runTest with CoroutineScope(Dispatchers.IO) in the subject under test uses real time for delays - not virtual time. Avoid testing async completion races on real dispatchers; prefer fake scopes or check only initial state.",
+      "source_ref": "MEMORY.md:92-94"
+    },
+    {
+      "id": "mem-026",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "testing"
+      ],
+      "source": "003",
+      "related": [
+        "mem-023"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Room KSP overrides constructor default parameter values in generated code",
+      "body": "When constructing Room entities in tests, use named parameters or pass all arguments explicitly - positional args with defaults don't work reliably.",
+      "source_ref": "MEMORY.md:95-97"
+    },
+    {
+      "id": "mem-027",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui"
+      ],
+      "source": "",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "StateFlow.first() returns cached value, not the next emission",
+      "body": "StateFlow.first() returns the immediately cached value, not the next emission. To wait for a state change, use first { predicate } or filter { }.first().",
+      "source_ref": "MEMORY.md:98-99"
+    },
+    {
+      "id": "mem-028",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "security"
+      ],
+      "source": "001",
+      "related": [
+        "mem-052"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "Use the mwiede JSch fork, never com.jcraft:jsch (Terrapin/CVE-2023-48795)",
+      "body": "Use the mwiede JSch fork (com.github.mwiede:jsch, >= 0.2.15), never com.jcraft:jsch (abandoned at 0.1.55, vulnerable to Terrapin / CVE-2023-48795).",
+      "source_ref": "MEMORY.md:100-101"
+    },
+    {
+      "id": "mem-029",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "source": "003",
+      "related": [
+        "mem-012",
+        "mem-013"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "JSch resume signatures - PRD arg order is wrong",
+      "body": "download is ChannelSftp.get(src, OutputStream, monitor, ChannelSftp.RESUME, skip); upload is put(InputStream, dst, monitor, ChannelSftp.RESUME). The PRD's get(remote, out, localSize, monitor) argument order is wrong - go through the ISftpClient abstraction and map carefully.",
+      "source_ref": "MEMORY.md:102-106"
+    },
+    {
+      "id": "mem-030",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui",
+        "transfers"
+      ],
+      "source": "003",
+      "related": [
+        "mem-012",
+        "mem-054"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "SAF openOutputStream isn't seekable; resumable downloads use a cache file",
+      "body": "SAF ContentResolver.openOutputStream cannot be arbitrarily seeked, and append mode (\"wa\") support is provider-dependent -> resumable downloads must write to an app-private (seekable) cache file, then copy to the SAF destination on completion.",
+      "source_ref": "MEMORY.md:107-110"
+    },
+    {
+      "id": "mem-031",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "source": "004",
+      "related": [
+        "mem-053"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Pause = stop worker + persist offset (WorkManager/FGS time limits)",
+      "body": "WorkManager workers have a ~10-minute execution window, and dataSync foreground services have a ~6h/day cap on Android 15+ -> implement pause as stop worker + persist byte offset, resume as re-enqueue from offset. Never a while (isPaused) delay() busy-wait.",
+      "source_ref": "MEMORY.md:111-114"
+    },
+    {
+      "id": "mem-032",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "security"
+      ],
+      "source": "001",
+      "related": [
+        "mem-041"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "security-crypto is deprecated; use Android Keystore AES-GCM",
+      "body": "androidx.security:security-crypto (EncryptedSharedPreferences) is deprecated (last release 1.1.0-alpha06) -> encrypt credentials with Android Keystore AES-GCM (optionally Tink) and store ciphertext in DataStore.",
+      "source_ref": "MEMORY.md:115-117"
+    },
+    {
+      "id": "mem-033",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "security"
+      ],
+      "source": "001",
+      "related": [
+        "mem-039",
+        "mem-056"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Show host-key fingerprints as SHA-256 (TOFU), not MD5",
+      "body": "Show host-key fingerprints as SHA-256 (TOFU), not MD5; never use StrictHostKeyChecking=no in production.",
+      "source_ref": "MEMORY.md:118-119"
+    },
+    {
+      "id": "mem-034",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "security",
+        "data"
+      ],
+      "source": "007",
+      "related": [
+        "mem-056"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Host-key fingerprints are public keys -> plaintext JSON in DataStore",
+      "body": "Host-key fingerprints are public keys, not secrets -> persist them as plaintext JSON in DataStore (known_hosts), never via Keystore (Keystore is only for credentials). KnownHostsStore is now suspend (DataStore is Flow/suspend-based); existing callers in JschSftpClient already run inside withContext(Dispatchers.IO), so the sync->suspend swap is transparent.",
+      "source_ref": "MEMORY.md:120-124"
+    },
+    {
+      "id": "mem-035",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build"
+      ],
+      "source": "",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Tooling is intentionally bleeding-edge; verify versions against the catalog",
+      "body": "Tooling is intentionally bleeding-edge (AGP 9.2.1, Kotlin 2.2.10, compileSdk 37, Compose BOM 2025.12.00). Verify Hilt / KSP / Room versions against the catalog before trusting web snippets.",
+      "source_ref": "MEMORY.md:125-127"
+    },
+    {
+      "id": "mem-036",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui"
+      ],
+      "source": "008",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Password visibility toggle: keep it pure UI",
+      "body": "Local remember { mutableStateOf(false) } in the Composable swaps visualTransformation and shows an eye trailingIcon, only in password mode (hide it in key-auth mode where the path is already plaintext). No ViewModel or test change.",
+      "source_ref": "MEMORY.md:128-131"
+    },
+    {
+      "id": "mem-037",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui",
+        "data"
+      ],
+      "source": "008",
+      "related": [
+        "mem-043",
+        "mem-057"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "SessionState bridge for cross-ViewModel data (no-NavHost tabs)",
+      "body": "A @Singleton class SessionState @Inject constructor() carries session-scoped values (the resolved start directory) from ConnectionViewModel -> FilesViewModel. Hilt builds it with no DI module. FilesVM reads it via a default arg (loadFiles(path = sessionState.initialDirectory)), so the call site stays unchanged.",
+      "source_ref": "MEMORY.md:132-136"
+    },
+    {
+      "id": "mem-038",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api"
+      ],
+      "source": "008",
+      "related": [
+        "mem-057"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Resolve SFTP home dir via ChannelSftp.getHome() once at connect",
+      "body": "Resolve the SFTP host home directory via ChannelSftp.getHome() (Kotlin property home), exposed as ISftpClient.homeDirectory(). Resolve once at connect (enteredDir.ifBlank { homeDirectory() } ?: \"/\"); do not auto-fallback on a later list failure - the Files screen shows its normal error. Mockito returns \"\" for an unstubbed suspend homeDirectory(), so the resolution is null/blank-safe in tests.",
+      "source_ref": "MEMORY.md:137-141"
+    },
+    {
+      "id": "mem-039",
+      "type": "pattern",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "security",
+        "api"
+      ],
+      "source": "001",
+      "related": [
+        "mem-011",
+        "mem-033",
+        "mem-042"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Post-connect host-key verification with sealed HostKeyResult",
+      "body": "Connect at JSch level first, extract session host key, compute SHA-256 fingerprint, check KnownHostsStore in the app layer. Return a sealed class (HostKeyResult.Trusted | Unknown | Changed) to the ViewModel UiState. Decouples JSch from UI threading and avoids JSch's built-in HostKeyRepository API.",
+      "source_ref": "MEMORY.md:146-149"
+    },
+    {
+      "id": "mem-040",
+      "type": "pattern",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "data"
+      ],
+      "source": "001",
+      "related": [
+        "mem-041",
+        "mem-042"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "DataStore + JSON for simple object lists",
+      "body": "Serialize/deserialize List<ConnectionProfile> as a single stringPreferencesKey JSON blob. Avoids Proto DataStore overhead for small, non-binary data.",
+      "source_ref": "MEMORY.md:150-152"
+    },
+    {
+      "id": "mem-041",
+      "type": "pattern",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "security",
+        "data"
+      ],
+      "source": "001",
+      "related": [
+        "mem-032",
+        "mem-040"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Credentials outside the profile via SecretStore",
+      "body": "Passwords/keys are encrypted and stored separately via SecretStore keyed by host:port:user ID, not bundled in ConnectionProfile. Keeps DataStore records audit-clean (profiles = public, keys = encrypted, stored separately).",
+      "source_ref": "MEMORY.md:153-155"
+    },
+    {
+      "id": "mem-042",
+      "type": "pattern",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "security",
+        "data"
+      ],
+      "source": "007",
+      "related": [
+        "mem-039",
+        "mem-040",
+        "mem-056"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Persisted KnownHostsStore via DataStore + JSON list",
+      "body": "Model a TrustedHost (host, fingerprint, keyType, trustedAt) with org.json helpers (JVM-testable like ConnectionProfile); store the list under one preference key (known_hosts). Keep an InMemoryKnownHostsStore implementing the same suspend interface as a fast unit-test double. Revoke = remove the entry; the \"Host key changed!\" dialog's Revoke & re-verify removes the stored key, then re-runs connect() so the new key surfaces as Unknown for fresh TOFU verification.",
+      "source_ref": "MEMORY.md:156-162"
+    },
+    {
+      "id": "mem-043",
+      "type": "pattern",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui",
+        "data"
+      ],
+      "source": "008",
+      "related": [
+        "mem-037",
+        "mem-045",
+        "mem-057"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "SessionState singleton for cross-VM session data",
+      "body": "A trivial @Singleton class X @Inject constructor() holds resolved, session-scoped values and bridges independent @HiltViewModels without NavHost args or SavedStateHandle. Used to carry the Connect page's default directory into the Files browser's starting path; read from a default function argument so existing call sites don't change.",
+      "source_ref": "MEMORY.md:163-167"
+    },
+    {
+      "id": "mem-044",
+      "type": "pattern",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui"
+      ],
+      "source": "009",
+      "related": [
+        "mem-045",
+        "mem-058"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Raw vs. derived list in a browser ViewModel (pure FileView)",
+      "body": "Keep the network-fetched listing (rawFiles) separate from the displayed list (files). Derive files through a pure object (FileView.apply(raw, showHidden, query, sortMode)) that filters (hidden dot-files, name search) then sorts (folders-first + chosen comparator + name tiebreaker). View-input setters update state and recompute in-memory - no re-fetch. FileView is JVM-unit-testable; persist sort/hidden across navigation but clear the search query on navigateTo/navigateBack.",
+      "source_ref": "MEMORY.md:168-174"
+    },
+    {
+      "id": "mem-045",
+      "type": "pattern",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui"
+      ],
+      "source": "010",
+      "related": [
+        "mem-043",
+        "mem-044",
+        "mem-059"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Remember last path across tab switches via SessionState.epoch",
+      "body": "An Activity-scoped viewModel() survives tab switches, so its state persists - but a screen's LaunchedEffect(Unit) re-fires on re-entry. Drive (re)loads through an onEnterScreen() that uses a SessionState.epoch (bumped on each connect) to distinguish a new connection (-> reset to initial dir, clear back-stack) from returning to the tab (-> reload the last currentPath). Don't reset screen state blindly in LaunchedEffect.",
+      "source_ref": "MEMORY.md:175-180"
+    },
+    {
+      "id": "mem-046",
+      "type": "pattern",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui",
+        "transfers"
+      ],
+      "source": "011",
+      "related": [
+        "mem-047",
+        "mem-060"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Batch upload via SAF multi-pick + in-app selection sheet",
+      "body": "OpenMultipleDocuments returns List<Uri>; after picking, show an in-app \"Upload selection\" sheet that resolves names/sizes, marks already-uploaded files (by completed-upload history keyed to currentDir/name), and lets the user toggle which ones to upload. enqueueUpload wraps the per-file copy-to-cache / enqueue / rename; batch completion is observed with .first { allTerminal(ids) } (also fixes the old return@collect observer leak). For multi-download, select files and pick a destination folder (OpenDocumentTree + DocumentFile.createFile), then enqueue + observe completion per file with the same first { } pattern.",
+      "source_ref": "MEMORY.md:181-189"
+    },
+    {
+      "id": "mem-047",
+      "type": "pattern",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui",
+        "data",
+        "transfers"
+      ],
+      "source": "011",
+      "related": [
+        "mem-046",
+        "mem-060"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Reuse completed UPLOAD history for 'already uploaded' memory",
+      "body": "Derive the set of previously-uploaded remote paths from dao.all() filtered to UPLOAD+COMPLETED (exposed as TransferManager.completedUploadPaths()). No new table - transfer_tasks already persists every transfer. Key the badge by target remote path (currentDir/name), so it means \"uploaded into this folder.\"",
+      "source_ref": "MEMORY.md:190-194"
+    },
+    {
+      "id": "mem-048",
+      "type": "pattern",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "ui",
+        "transfers"
+      ],
+      "source": "012",
+      "related": [
+        "mem-050",
+        "mem-061"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Per-item retry via re-enqueue + offset reset (uploads only)",
+      "body": "Retrying a FAILED upload reuses the resume machinery (re-enqueue a OneTimeWorkRequest tagged sftping_transfer_<id> with task_id) but first dao.updateProgress(id, 0, RUNNING) to reset the offset -> the worker re-reads the still-present cache and re-uploads with OVERWRITE (not RESUME); status -> RUNNING so the row returns to ACTIVE. Gated to FAILED+UPLOAD - an upload's cache (sftping_ul_<id>_<name>) persists on failure, but a download's cache->SAF copy is UI-driven, so download retry from Transfers isn't safe.",
+      "source_ref": "MEMORY.md:195-201"
+    },
+    {
+      "id": "mem-049",
+      "type": "pattern",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui"
+      ],
+      "source": "001",
+      "related": [
+        "mem-016"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "ComponentActivity + @AndroidEntryPoint enough for viewModel() + @HiltViewModel",
+      "body": "No hilt-navigation-compose needed; no NavHost required for tab-based NavigationSuiteScaffold.",
+      "source_ref": "MEMORY.md:202-203"
+    },
+    {
+      "id": "mem-050",
+      "type": "pattern",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui",
+        "transfers"
+      ],
+      "source": "012",
+      "related": [
+        "mem-048"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "Material 3 swipe + multi-select list management",
+      "body": "ElevatedCard per row with SwipeToDismissBox (EndToStart only) for single-action cancel/delete. combinedClickable for long-press multi-select with Checkbox trailing. selectedIds: Set<Long> as local remember state. Contextual TopAppBar with secondaryContainer background showing \"N selected\" + delete action. Completed rows show \"Completed on yyyy-MM-dd HH:mm:ss\". Tap opens a detail AlertDialog with file name, mono-spaced path, size, direction, colored status label, and formatted datetime.",
+      "source_ref": "MEMORY.md:204-210"
+    },
+    {
+      "id": "mem-051",
+      "type": "decision",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "architecture"
+      ],
+      "source": "ADR-001",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "ADR-001: Specs in specs/ separate from docs/",
+      "body": "Specs in specs/ separate from docs/ (permanent reference vs per-feature artifacts).",
+      "source_ref": "MEMORY.md:214"
+    },
+    {
+      "id": "mem-052",
+      "type": "decision",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "architecture",
+        "api",
+        "security"
+      ],
+      "source": "ADR-002",
+      "related": [
+        "mem-028"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "ADR-002: SFTP library = JSch (mwiede fork), not SSHJ",
+      "body": "SFTP library = JSch (mwiede fork), not SSHJ - lighter, BSD-3-Clause, matches PRD, Terrapin-patched.",
+      "source_ref": "MEMORY.md:215-216"
+    },
+    {
+      "id": "mem-053",
+      "type": "decision",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "architecture",
+        "transfers"
+      ],
+      "source": "ADR-003",
+      "related": [
+        "mem-031",
+        "mem-054"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "ADR-003: Transfer pause = stop worker + persist byte offset",
+      "body": "Transfer pause = stop worker + persist byte offset; resume = re-enqueue from offset (avoids WorkManager / FGS time limits).",
+      "source_ref": "MEMORY.md:217-218"
+    },
+    {
+      "id": "mem-054",
+      "type": "decision",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "architecture",
+        "ui",
+        "transfers"
+      ],
+      "source": "ADR-004",
+      "related": [
+        "mem-030",
+        "mem-053"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "ADR-004: Resumable downloads land in a cache file, then copy to SAF",
+      "body": "Resumable downloads land in a private cache file, then copy to the SAF target (SAF is not reliably seekable).",
+      "source_ref": "MEMORY.md:219-220"
+    },
+    {
+      "id": "mem-055",
+      "type": "decision",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "architecture",
+        "build"
+      ],
+      "source": "ADR-005",
+      "related": [
+        "mem-004"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "ADR-005: DI = Hilt; applicationId must change before Play Store",
+      "body": "DI = Hilt (with HiltWorker for WorkManager). applicationId stays com.example.sftping until release - must change before Play Store submission (rejects com.example.*).",
+      "source_ref": "MEMORY.md:221-223"
+    },
+    {
+      "id": "mem-056",
+      "type": "decision",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "architecture",
+        "security"
+      ],
+      "source": "ADR-006",
+      "related": [
+        "mem-033",
+        "mem-034",
+        "mem-042"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "ADR-006: Persist trusted host keys in DataStore as plaintext JSON",
+      "body": "Persist trusted host keys in DataStore as plaintext JSON (fingerprints are public keys). Key entries by host (SSH-endpoint/port scoping deferred). Revoke = remove the entry; the Changed-dialog \"Revoke & re-verify\" re-runs connect().",
+      "source_ref": "MEMORY.md:224-226"
+    },
+    {
+      "id": "mem-057",
+      "type": "decision",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "architecture",
+        "ui"
+      ],
+      "source": "ADR-007",
+      "related": [
+        "mem-037",
+        "mem-038",
+        "mem-043",
+        "mem-059"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "ADR-007: Bridge Connect->Files with a @Singleton SessionState",
+      "body": "Bridge Connect->Files with a @Singleton SessionState (resolved remote start directory) rather than NavHost args or SavedStateHandle; keeps the tab-based, no-NavHost architecture intact. Default directory is resolved once at connect (enteredDir or getHome()); list failures surface the normal error (no auto-fallback).",
+      "source_ref": "MEMORY.md:227-230"
+    },
+    {
+      "id": "mem-058",
+      "type": "decision",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "architecture",
+        "ui"
+      ],
+      "source": "ADR-008",
+      "related": [
+        "mem-044"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "ADR-008: Files browser computes listing from rawFiles via pure FileView",
+      "body": "Files browser computes its displayed listing from a retained rawFiles via a pure FileView (filter hidden + name search, then folders-first + selected sort). One SFTP list per directory; all view changes are in-memory and testable. Search filters the current directory only (no recursive remote walk).",
+      "source_ref": "MEMORY.md:231-234"
+    },
+    {
+      "id": "mem-059",
+      "type": "decision",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "architecture",
+        "ui"
+      ],
+      "source": "ADR-009",
+      "related": [
+        "mem-045",
+        "mem-057"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "ADR-009: Detect a new connection via a SessionState.epoch",
+      "body": "Detect a new connection via a SessionState.epoch bumped on each connect (not by comparing initialDirectory, which can repeat across hosts). Files reloads the last currentPath on same-session tab re-entry and resets to initialDirectory on epoch change.",
+      "source_ref": "MEMORY.md:235-237"
+    },
+    {
+      "id": "mem-060",
+      "type": "decision",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "architecture",
+        "data",
+        "transfers"
+      ],
+      "source": "ADR-010",
+      "related": [
+        "mem-046",
+        "mem-047"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "ADR-010: 'Already uploaded' memory derives from completed UPLOAD tasks",
+      "body": "\"Already uploaded\" memory derives from completed UPLOAD transfer_tasks records keyed by remote path, rather than tracking local file identity (SAF URIs aren't stable). The Upload selection sheet - not the un-annotatable system picker - carries the indication. Batch transfer completion is observed with .first { predicate } on the DAO flow rather than raw collect.",
+      "source_ref": "MEMORY.md:238-242"
+    },
+    {
+      "id": "mem-061",
+      "type": "decision",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "architecture",
+        "api",
+        "transfers"
+      ],
+      "source": "ADR-011",
+      "related": [
+        "mem-013",
+        "mem-048"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "ADR-011: Retry of a failed upload re-enqueues + resets bytes (uploads only)",
+      "body": "Retry of a failed upload re-enqueues the existing task (resume mechanics) after resetting transferredBytes to 0 (fresh OVERWRITE, avoiding RESUME-on-fresh). Scoped to uploads - downloads need a live SAF-copy step the Transfers page can't replicate.",
+      "source_ref": "MEMORY.md:243-245"
+    },
+    {
+      "id": "mem-062",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build"
+      ],
+      "source": "001",
+      "related": [
+        "mem-009"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "001: @HiltAndroidApp class name collided with a composable (KSP overload)",
+      "body": "@HiltAndroidApp class name collided with an existing fun SftpingApp() composable in the same package -> KSP overload conflict. Fix: renamed Application to SftpingApplication.",
+      "source_ref": "MEMORY.md:272-273"
+    },
+    {
+      "id": "mem-063",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "security"
+      ],
+      "source": "001",
+      "related": [
+        "mem-011"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "001: Host-key fingerprints wrong because getKey() returns base64",
+      "body": "Host-key fingerprints came out wrong because HostKey.getKey() returns a base64 String, not bytes. Fix: Base64.getDecoder().decode(key) before SHA-256.",
+      "source_ref": "MEMORY.md:274-275"
+    },
+    {
+      "id": "mem-064",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "testing"
+      ],
+      "source": "001",
+      "related": [
+        "mem-010"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "001: JVM unit tests failed to resolve org.json.JSONObject",
+      "body": "JVM unit tests failed to resolve org.json.JSONObject (Android framework class). Fix: add org.json:json as testImplementation.",
+      "source_ref": "MEMORY.md:276-277"
+    },
+    {
+      "id": "mem-065",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "source": "002",
+      "related": [
+        "mem-006",
+        "mem-007"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "002: Upload Worker found a missing cache file",
+      "body": "Two causes: (a) the ViewModel deleted the cache right after enqueue(), and (b) ViewModel/Worker used different file names. Fix: the Worker owns the cache lifecycle; ViewModel renames cache to sftping_ul_<taskId>_<fileName>.",
+      "source_ref": "MEMORY.md:278-280"
+    },
+    {
+      "id": "mem-066",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui"
+      ],
+      "source": "002",
+      "related": [
+        "mem-018"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "002: rememberLauncherForActivityResult captured an uninitialized variable",
+      "body": "Closures bind by reference at compose time. Fix: declare mutable state before the launcher.",
+      "source_ref": "MEMORY.md:281-282"
+    },
+    {
+      "id": "mem-067",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "source": "003",
+      "related": [
+        "mem-012"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "003: Fresh download with get(..., RESUME) threw SftpException",
+      "body": "RESUME stat()s a non-existent local file. Fix: if (!file.exists()) file.createNewFile() before RESUME.",
+      "source_ref": "MEMORY.md:283-284"
+    },
+    {
+      "id": "mem-068",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "ui",
+        "transfers"
+      ],
+      "source": "003",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "003: Compose when over TransferStatus stopped compiling after adding PAUSED",
+      "body": "Fix: add the exhaustive branches in statusText()/icon mapping.",
+      "source_ref": "MEMORY.md:285-286"
+    },
+    {
+      "id": "mem-069",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "source": "004",
+      "related": [
+        "mem-004",
+        "mem-070"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "004: InvalidForegroundServiceTypeException: Starting FGS with type none",
+      "body": "App crashed at runtime with InvalidForegroundServiceTypeException: Starting FGS with type none. Fix: pass FOREGROUND_SERVICE_TYPE_DATA_SYNC to ForegroundInfo.",
+      "source_ref": "MEMORY.md:287-288"
+    },
+    {
+      "id": "mem-070",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "source": "004",
+      "related": [
+        "mem-005",
+        "mem-069"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "004: Second FGS crash: 0x00000001 is not a subset of 0x00000000",
+      "body": "WorkManager's SystemForegroundService declares no type. Fix: manifest merge directive adding android:foregroundServiceType=\"dataSync\" to that service.",
+      "source_ref": "MEMORY.md:289-291"
+    },
+    {
+      "id": "mem-071",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "source": "004",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "004: CoroutineWorker's context constructor param shadowed android.content.Context",
+      "body": "Fix: use applicationContext (or rename the param).",
+      "source_ref": "MEMORY.md:292-293"
+    },
+    {
+      "id": "mem-072",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "source": "006",
+      "related": [
+        "mem-015"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "006: Transfers hung on RUNNING; Workers entered RETRY loops (awaitClose)",
+      "body": "callbackFlow used awaitClose {} for a single-shot SFTP op (suspends the producer forever). Fix: call close() after the operation returns. awaitClose is only for long-lived listeners.",
+      "source_ref": "MEMORY.md:294-296"
+    },
+    {
+      "id": "mem-073",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "build",
+        "testing",
+        "transfers"
+      ],
+      "source": "006",
+      "related": [],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": false,
+      "recurrence_count": 1,
+      "title": "006: mock<Context> returned null cacheDir, breaking use-case tests",
+      "body": "Fix: doReturn(realDir).whenever(context).cacheDir.",
+      "source_ref": "MEMORY.md:297-298"
+    },
+    {
+      "id": "mem-074",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "source": "fix-upload",
+      "related": [
+        "mem-013"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "fix(upload): Fresh uploads failed instantly (put RESUME on absent remote)",
+      "body": "Fresh uploads failed instantly (Worker result FAILURE, ~30 ms) because SftpTransferStrategy.upload always called uploadWithResume -> put(..., RESUME), which stat()s the absent remote file and throws SftpException (the upload twin of the 003 download-RESUME bug); the real cause was swallowed (no log). Fix: route by offset in the strategy - skip == 0 -> sftpClient.upload (OVERWRITE), skip > 0 -> uploadWithResume (RESUME); plus Log.e the exception in Upload/DownloadUseCase.",
+      "source_ref": "MEMORY.md:299-304"
+    },
+    {
+      "id": "mem-075",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "created": "2026-07-03T12:45:33Z",
+      "last_accessed": "2026-07-03T12:45:33Z",
+      "access_count": 0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "source": "fix-concurrency",
+      "related": [
+        "mem-006",
+        "mem-014"
+      ],
+      "superseded_by": null,
+      "deprecated": false,
+      "pinned": true,
+      "recurrence_count": 1,
+      "title": "fix(concurrency): 2nd upload failed with JSch garbage-status (shared ChannelSftp)",
+      "body": "The 2nd of two uploads failed with a JSch garbage-status SftpException (1936916480 = 0x73730000, empty message) because JschSftpClient shared one ChannelSftp across concurrent transfers + UI listFiles (non-thread-safe -> SFTP stream desync). Fix: open a fresh sftp channel per operation over the shared session and disconnect it in finally; connect()/trustAndProceed() no longer keep a persistent channel. Also fixed an upload cache leak: the worker's success cleanup deleted the stale pre-rename task.localUri; now it deletes the real cache file sftping_ul_<id>_<name>.",
+      "source_ref": "MEMORY.md:305-312"
+    }
+  ]
+}

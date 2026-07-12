@@ -1,0 +1,1189 @@
+{
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": "mem-001",
+      "title": "Hilt Gradle plugin must be >= 2.59.2 for AGP 9.x",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "build"
+      ],
+      "community": 0,
+      "pinned": true
+    },
+    {
+      "id": "mem-002",
+      "title": "KSP versioning is independent of Kotlin",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "build"
+      ],
+      "community": 0,
+      "pinned": true
+    },
+    {
+      "id": "mem-003",
+      "title": "androidx.core:core-ktx:1.19.0 requires compileSdk >= 37",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "build"
+      ],
+      "community": 0,
+      "pinned": true
+    },
+    {
+      "id": "mem-004",
+      "title": "Foreground service must declare type on API 34+ (ForegroundInfo)",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": true
+    },
+    {
+      "id": "mem-005",
+      "title": "WorkManager SystemForegroundService needs a manifest merge directive for foregroundServiceType",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": true
+    },
+    {
+      "id": "mem-006",
+      "title": "Cache file lifecycle across ViewModel<->Worker boundary needs identical naming",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": true
+    },
+    {
+      "id": "mem-007",
+      "title": "Never delete cache files before the Worker consumes them",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": true
+    },
+    {
+      "id": "mem-008",
+      "title": "Transfers are asynchronous - observe TransferManager.items for COMPLETED",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "ui",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": false
+    },
+    {
+      "id": "mem-009",
+      "title": "@HiltAndroidApp class name must not collide with a composable",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "build"
+      ],
+      "community": 0,
+      "pinned": true
+    },
+    {
+      "id": "mem-010",
+      "title": "org.json is an Android framework class, unavailable in JVM unit tests",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "build",
+        "testing"
+      ],
+      "community": 0,
+      "pinned": false
+    },
+    {
+      "id": "mem-011",
+      "title": "JSch HostKey.getKey() returns a base64-encoded String, not bytes",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "api",
+        "security"
+      ],
+      "community": 1,
+      "pinned": false
+    },
+    {
+      "id": "mem-012",
+      "title": "JSch RESUME stat()s the local file on download; ensure it exists first",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "community": 1,
+      "pinned": true
+    },
+    {
+      "id": "mem-013",
+      "title": "JSch RESUME stat()s the remote file on upload; route by offset",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "community": 1,
+      "pinned": true
+    },
+    {
+      "id": "mem-014",
+      "title": "ChannelSftp is not thread-safe - open a fresh channel per operation",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "community": 1,
+      "pinned": true
+    },
+    {
+      "id": "mem-015",
+      "title": "Use close() not awaitClose{} for single-shot callbackFlow SFTP ops",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": true
+    },
+    {
+      "id": "mem-016",
+      "title": "viewModel() works with @HiltViewModel + @AndroidEntryPoint Activity",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-017",
+      "title": "ViewModel by mutableStateOf needs explicit runtime imports",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-018",
+      "title": "rememberLauncherForActivityResult captures by reference; declare state first",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-019",
+      "title": "withContext(Dispatchers.IO) is suspend; callers must be suspend",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-020",
+      "title": "SAF _display_name query can return null; fall back to lastPathSegment",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-021",
+      "title": "TransferManager + TransfersViewModel: @Singleton StateFlow holder + thin VM",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "ui",
+        "data"
+      ],
+      "community": 5,
+      "pinned": false
+    },
+    {
+      "id": "mem-022",
+      "title": "Multi-select in LazyColumn via combinedClickable",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-023",
+      "title": "Room suspend DAO functions can't be called from non-suspend callbacks",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "api",
+        "data"
+      ],
+      "community": 5,
+      "pinned": false
+    },
+    {
+      "id": "mem-024",
+      "title": "JSch RESUME handles remote offset; manually skip() the upload InputStream",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "community": 1,
+      "pinned": false
+    },
+    {
+      "id": "mem-025",
+      "title": "runTest with CoroutineScope(Dispatchers.IO) uses real time, not virtual",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "build",
+        "testing"
+      ],
+      "community": 0,
+      "pinned": false
+    },
+    {
+      "id": "mem-026",
+      "title": "Room KSP overrides constructor default parameter values in generated code",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "build",
+        "testing"
+      ],
+      "community": 0,
+      "pinned": false
+    },
+    {
+      "id": "mem-027",
+      "title": "StateFlow.first() returns cached value, not the next emission",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-028",
+      "title": "Use the mwiede JSch fork, never com.jcraft:jsch (Terrapin/CVE-2023-48795)",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "api",
+        "security"
+      ],
+      "community": 1,
+      "pinned": true
+    },
+    {
+      "id": "mem-029",
+      "title": "JSch resume signatures - PRD arg order is wrong",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "community": 1,
+      "pinned": false
+    },
+    {
+      "id": "mem-030",
+      "title": "SAF openOutputStream isn't seekable; resumable downloads use a cache file",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "ui",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": true
+    },
+    {
+      "id": "mem-031",
+      "title": "Pause = stop worker + persist offset (WorkManager/FGS time limits)",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": false
+    },
+    {
+      "id": "mem-032",
+      "title": "security-crypto is deprecated; use Android Keystore AES-GCM",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "security"
+      ],
+      "community": 4,
+      "pinned": true
+    },
+    {
+      "id": "mem-033",
+      "title": "Show host-key fingerprints as SHA-256 (TOFU), not MD5",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "security"
+      ],
+      "community": 4,
+      "pinned": false
+    },
+    {
+      "id": "mem-034",
+      "title": "Host-key fingerprints are public keys -> plaintext JSON in DataStore",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "security",
+        "data"
+      ],
+      "community": 4,
+      "pinned": false
+    },
+    {
+      "id": "mem-035",
+      "title": "Tooling is intentionally bleeding-edge; verify versions against the catalog",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "build"
+      ],
+      "community": 0,
+      "pinned": false
+    },
+    {
+      "id": "mem-036",
+      "title": "Password visibility toggle: keep it pure UI",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-037",
+      "title": "SessionState bridge for cross-ViewModel data (no-NavHost tabs)",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "ui",
+        "data"
+      ],
+      "community": 5,
+      "pinned": false
+    },
+    {
+      "id": "mem-038",
+      "title": "Resolve SFTP home dir via ChannelSftp.getHome() once at connect",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "api"
+      ],
+      "community": 1,
+      "pinned": false
+    },
+    {
+      "id": "mem-039",
+      "title": "Post-connect host-key verification with sealed HostKeyResult",
+      "type": "pattern",
+      "confidence": 0.9,
+      "tags": [
+        "security",
+        "api"
+      ],
+      "community": 4,
+      "pinned": false
+    },
+    {
+      "id": "mem-040",
+      "title": "DataStore + JSON for simple object lists",
+      "type": "pattern",
+      "confidence": 0.9,
+      "tags": [
+        "data"
+      ],
+      "community": 5,
+      "pinned": false
+    },
+    {
+      "id": "mem-041",
+      "title": "Credentials outside the profile via SecretStore",
+      "type": "pattern",
+      "confidence": 0.9,
+      "tags": [
+        "security",
+        "data"
+      ],
+      "community": 4,
+      "pinned": false
+    },
+    {
+      "id": "mem-042",
+      "title": "Persisted KnownHostsStore via DataStore + JSON list",
+      "type": "pattern",
+      "confidence": 0.9,
+      "tags": [
+        "security",
+        "data"
+      ],
+      "community": 4,
+      "pinned": false
+    },
+    {
+      "id": "mem-043",
+      "title": "SessionState singleton for cross-VM session data",
+      "type": "pattern",
+      "confidence": 0.9,
+      "tags": [
+        "ui",
+        "data"
+      ],
+      "community": 5,
+      "pinned": false
+    },
+    {
+      "id": "mem-044",
+      "title": "Raw vs. derived list in a browser ViewModel (pure FileView)",
+      "type": "pattern",
+      "confidence": 0.9,
+      "tags": [
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-045",
+      "title": "Remember last path across tab switches via SessionState.epoch",
+      "type": "pattern",
+      "confidence": 0.9,
+      "tags": [
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-046",
+      "title": "Batch upload via SAF multi-pick + in-app selection sheet",
+      "type": "pattern",
+      "confidence": 0.9,
+      "tags": [
+        "ui",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": false
+    },
+    {
+      "id": "mem-047",
+      "title": "Reuse completed UPLOAD history for 'already uploaded' memory",
+      "type": "pattern",
+      "confidence": 0.9,
+      "tags": [
+        "ui",
+        "data",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": false
+    },
+    {
+      "id": "mem-048",
+      "title": "Per-item retry via re-enqueue + offset reset (uploads only)",
+      "type": "pattern",
+      "confidence": 0.9,
+      "tags": [
+        "api",
+        "ui",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": false
+    },
+    {
+      "id": "mem-049",
+      "title": "ComponentActivity + @AndroidEntryPoint enough for viewModel() + @HiltViewModel",
+      "type": "pattern",
+      "confidence": 0.9,
+      "tags": [
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-050",
+      "title": "Material 3 swipe + multi-select list management",
+      "type": "pattern",
+      "confidence": 0.9,
+      "tags": [
+        "ui",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": false
+    },
+    {
+      "id": "mem-051",
+      "title": "ADR-001: Specs in specs/ separate from docs/",
+      "type": "decision",
+      "confidence": 0.9,
+      "tags": [
+        "architecture"
+      ],
+      "community": 0,
+      "pinned": false
+    },
+    {
+      "id": "mem-052",
+      "title": "ADR-002: SFTP library = JSch (mwiede fork), not SSHJ",
+      "type": "decision",
+      "confidence": 0.9,
+      "tags": [
+        "architecture",
+        "api",
+        "security"
+      ],
+      "community": 1,
+      "pinned": false
+    },
+    {
+      "id": "mem-053",
+      "title": "ADR-003: Transfer pause = stop worker + persist byte offset",
+      "type": "decision",
+      "confidence": 0.9,
+      "tags": [
+        "architecture",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": false
+    },
+    {
+      "id": "mem-054",
+      "title": "ADR-004: Resumable downloads land in a cache file, then copy to SAF",
+      "type": "decision",
+      "confidence": 0.9,
+      "tags": [
+        "architecture",
+        "ui",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": false
+    },
+    {
+      "id": "mem-055",
+      "title": "ADR-005: DI = Hilt; applicationId must change before Play Store",
+      "type": "decision",
+      "confidence": 1.0,
+      "tags": [
+        "architecture",
+        "build"
+      ],
+      "community": 0,
+      "pinned": true
+    },
+    {
+      "id": "mem-056",
+      "title": "ADR-006: Persist trusted host keys in DataStore as plaintext JSON",
+      "type": "decision",
+      "confidence": 0.9,
+      "tags": [
+        "architecture",
+        "security"
+      ],
+      "community": 4,
+      "pinned": false
+    },
+    {
+      "id": "mem-057",
+      "title": "ADR-007: Bridge Connect->Files with a @Singleton SessionState",
+      "type": "decision",
+      "confidence": 0.9,
+      "tags": [
+        "architecture",
+        "ui"
+      ],
+      "community": 5,
+      "pinned": false
+    },
+    {
+      "id": "mem-058",
+      "title": "ADR-008: Files browser computes listing from rawFiles via pure FileView",
+      "type": "decision",
+      "confidence": 0.9,
+      "tags": [
+        "architecture",
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-059",
+      "title": "ADR-009: Detect a new connection via a SessionState.epoch",
+      "type": "decision",
+      "confidence": 0.9,
+      "tags": [
+        "architecture",
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-060",
+      "title": "ADR-010: 'Already uploaded' memory derives from completed UPLOAD tasks",
+      "type": "decision",
+      "confidence": 0.9,
+      "tags": [
+        "architecture",
+        "data",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": false
+    },
+    {
+      "id": "mem-061",
+      "title": "ADR-011: Retry of a failed upload re-enqueues + resets bytes (uploads only)",
+      "type": "decision",
+      "confidence": 0.9,
+      "tags": [
+        "architecture",
+        "api",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": false
+    },
+    {
+      "id": "mem-062",
+      "title": "001: @HiltAndroidApp class name collided with a composable (KSP overload)",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "build"
+      ],
+      "community": 0,
+      "pinned": false
+    },
+    {
+      "id": "mem-063",
+      "title": "001: Host-key fingerprints wrong because getKey() returns base64",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "api",
+        "security"
+      ],
+      "community": 1,
+      "pinned": false
+    },
+    {
+      "id": "mem-064",
+      "title": "001: JVM unit tests failed to resolve org.json.JSONObject",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "build",
+        "testing"
+      ],
+      "community": 0,
+      "pinned": false
+    },
+    {
+      "id": "mem-065",
+      "title": "002: Upload Worker found a missing cache file",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": false
+    },
+    {
+      "id": "mem-066",
+      "title": "002: rememberLauncherForActivityResult captured an uninitialized variable",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "ui"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-067",
+      "title": "003: Fresh download with get(..., RESUME) threw SftpException",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "community": 1,
+      "pinned": false
+    },
+    {
+      "id": "mem-068",
+      "title": "003: Compose when over TransferStatus stopped compiling after adding PAUSED",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "ui",
+        "transfers"
+      ],
+      "community": 3,
+      "pinned": false
+    },
+    {
+      "id": "mem-069",
+      "title": "004: InvalidForegroundServiceTypeException: Starting FGS with type none",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": true
+    },
+    {
+      "id": "mem-070",
+      "title": "004: Second FGS crash: 0x00000001 is not a subset of 0x00000000",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": true
+    },
+    {
+      "id": "mem-071",
+      "title": "004: CoroutineWorker's context constructor param shadowed android.content.Context",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "build",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": false
+    },
+    {
+      "id": "mem-072",
+      "title": "006: Transfers hung on RUNNING; Workers entered RETRY loops (awaitClose)",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": true
+    },
+    {
+      "id": "mem-073",
+      "title": "006: mock<Context> returned null cacheDir, breaking use-case tests",
+      "type": "gotcha",
+      "confidence": 0.9,
+      "tags": [
+        "build",
+        "testing",
+        "transfers"
+      ],
+      "community": 2,
+      "pinned": false
+    },
+    {
+      "id": "mem-074",
+      "title": "fix(upload): Fresh uploads failed instantly (put RESUME on absent remote)",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "community": 1,
+      "pinned": true
+    },
+    {
+      "id": "mem-075",
+      "title": "fix(concurrency): 2nd upload failed with JSch garbage-status (shared ChannelSftp)",
+      "type": "gotcha",
+      "confidence": 1.0,
+      "tags": [
+        "api",
+        "transfers"
+      ],
+      "community": 1,
+      "pinned": true
+    }
+  ],
+  "edges": [
+    {
+      "source": "mem-012",
+      "target": "mem-067",
+      "relation": "prevents"
+    },
+    {
+      "source": "mem-013",
+      "target": "mem-074",
+      "relation": "prevents"
+    },
+    {
+      "source": "mem-012",
+      "target": "mem-013",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-024",
+      "target": "mem-012",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-029",
+      "target": "mem-012",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-029",
+      "target": "mem-013",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-014",
+      "target": "mem-075",
+      "relation": "prevents"
+    },
+    {
+      "source": "mem-015",
+      "target": "mem-072",
+      "relation": "prevents"
+    },
+    {
+      "source": "mem-004",
+      "target": "mem-069",
+      "relation": "prevents"
+    },
+    {
+      "source": "mem-005",
+      "target": "mem-070",
+      "relation": "prevents"
+    },
+    {
+      "source": "mem-004",
+      "target": "mem-005",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-069",
+      "target": "mem-070",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-006",
+      "target": "mem-065",
+      "relation": "prevents"
+    },
+    {
+      "source": "mem-007",
+      "target": "mem-065",
+      "relation": "prevents"
+    },
+    {
+      "source": "mem-006",
+      "target": "mem-007",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-006",
+      "target": "mem-075",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-009",
+      "target": "mem-062",
+      "relation": "prevents"
+    },
+    {
+      "source": "mem-010",
+      "target": "mem-064",
+      "relation": "prevents"
+    },
+    {
+      "source": "mem-011",
+      "target": "mem-063",
+      "relation": "prevents"
+    },
+    {
+      "source": "mem-011",
+      "target": "mem-039",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-018",
+      "target": "mem-066",
+      "relation": "prevents"
+    },
+    {
+      "source": "mem-030",
+      "target": "mem-012",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-052",
+      "target": "mem-028",
+      "relation": "depends_on"
+    },
+    {
+      "source": "mem-053",
+      "target": "mem-031",
+      "relation": "depends_on"
+    },
+    {
+      "source": "mem-054",
+      "target": "mem-030",
+      "relation": "depends_on"
+    },
+    {
+      "source": "mem-054",
+      "target": "mem-053",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-055",
+      "target": "mem-004",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-056",
+      "target": "mem-034",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-056",
+      "target": "mem-042",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-056",
+      "target": "mem-033",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-057",
+      "target": "mem-037",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-057",
+      "target": "mem-043",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-057",
+      "target": "mem-038",
+      "relation": "depends_on"
+    },
+    {
+      "source": "mem-058",
+      "target": "mem-044",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-059",
+      "target": "mem-045",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-059",
+      "target": "mem-057",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-060",
+      "target": "mem-047",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-060",
+      "target": "mem-046",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-061",
+      "target": "mem-048",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-061",
+      "target": "mem-013",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-032",
+      "target": "mem-041",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-039",
+      "target": "mem-042",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-039",
+      "target": "mem-033",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-040",
+      "target": "mem-041",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-040",
+      "target": "mem-042",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-028",
+      "target": "mem-052",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-048",
+      "target": "mem-050",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-046",
+      "target": "mem-047",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-008",
+      "target": "mem-021",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-016",
+      "target": "mem-049",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-023",
+      "target": "mem-026",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-044",
+      "target": "mem-045",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-043",
+      "target": "mem-045",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-037",
+      "target": "mem-043",
+      "relation": "relates_to"
+    },
+    {
+      "source": "mem-067",
+      "target": "mem-012",
+      "relation": "caused_by"
+    },
+    {
+      "source": "mem-074",
+      "target": "mem-013",
+      "relation": "caused_by"
+    },
+    {
+      "source": "mem-075",
+      "target": "mem-014",
+      "relation": "caused_by"
+    },
+    {
+      "source": "mem-072",
+      "target": "mem-015",
+      "relation": "caused_by"
+    }
+  ],
+  "communities": {
+    "0": "Build system, tooling & test-infra compatibility. Covers the bleeding-edge toolchain (AGP 9.x, Kotlin 2.2.10, KSP2, Hilt, compileSdk 37) where version coupling is non-obvious: Hilt>=2.59.2, KSP versioned independently of Kotlin, core-ktx needing compileSdk 37. Key risks: version-mismatch build crashes and JVM-vs-Android class availability (org.json). Also unit-test gotchas: real-time dispatchers in runTest and Room KSP overriding constructor defaults.",
+    "1": "SFTP protocol & JSch (mwiede fork) client behavior. The core risk area: JSch RESUME mode stat()s the destination (local for download, remote for upload) so it throws on fresh transfers -> route by offset. ChannelSftp is not thread-safe (open a fresh channel per op). HostKey.getKey() returns base64. Established decision: use the mwiede fork (Terrapin-patched), never com.jcraft.",
+    "2": "Background transfers: WorkManager foreground service, cache lifecycle & resumable pause/resume. Production-breaking risks: FGS type must be declared both at runtime (ForegroundInfo DATA_SYNC) and at install (manifest merge for SystemForegroundService); callbackFlow awaitClose hangs single-shot transfers (use close()); cache files must outlive the Worker and share naming across the ViewModel<->Worker boundary. Pause = stop worker + persist offset; retry = re-enqueue with offset reset.",
+    "3": "Jetpack Compose UI & Storage Access Framework patterns. Covers ViewModel wiring (viewModel() + @HiltViewModel, no NavHost), mutableStateOf imports, launcher closure capture order, SAF display-name null fallback, multi-select via combinedClickable, and the file browser's raw-vs-derived list (pure FileView) with last-path memory across tabs.",
+    "4": "Security: host-key trust (TOFU) & credential storage. Show SHA-256 fingerprints (not MD5), never StrictHostKeyChecking=no. Fingerprints are public keys -> plaintext JSON in DataStore; credentials are secrets -> Android Keystore AES-GCM (security-crypto is deprecated), stored separately from profiles. Post-connect verification returns a sealed HostKeyResult.",
+    "5": "Persistence layer: DataStore & Room. DataStore holds connection profiles as a JSON blob and trusted hosts as a JSON list; Room (sftping.db) persists transfer state and doubles as the source of 'already uploaded' memory. Cross-ViewModel session data bridged via a @Singleton SessionState."
+  }
+}

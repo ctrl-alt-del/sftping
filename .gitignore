@@ -33,3 +33,7 @@ secrets.xml
 
 # Service configs that embed keys
 google-services.json
+
+# Self-evolving memory — raw observations may contain residual PII
+memory/raw/
+memory/.backup/
