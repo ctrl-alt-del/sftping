@@ -15,12 +15,13 @@ filesystem, and run resumable, pausable, background uploads/downloads. See
 ## Architecture / Module Layout
 
 Single-Activity app. `MainActivity` hosts a Material 3 `NavigationSuiteScaffold`
-with three state-driven tabs: **Connect → Files → Transfers** (no NavHost).
+with four state-driven tabs: **Connect → Files → Transfers → Editor** (no NavHost).
 
-Stack: **Hilt** DI, **Room** (`sftping.db`) for transfer state, **WorkManager**
-`dataSync` foreground service for background transfers, **DataStore** for
-connection profiles, trusted host keys + encrypted secrets, **JSch (mwiede fork)**
-for SFTP, and **Android Keystore** AES-256-GCM for credential encryption.
+Stack: **Hilt** DI, **Room** (`sftping.db` for transfers, `sftping_editor.db` for
+offline editor edits), **WorkManager** `dataSync` foreground service for background
+transfers, **DataStore** for connection profiles, trusted host keys, saved editor
+locations + encrypted secrets, **JSch (mwiede fork)** for SFTP, and **Android
+Keystore** AES-256-GCM for credential encryption.
 
 Transfers use a layered, protocol-agnostic pipeline:
 `SftpTransferWorker → Download/UploadUseCase → TransferStrategy (SftpTransferStrategy
@@ -28,16 +29,17 @@ Transfers use a layered, protocol-agnostic pipeline:
 
 Package map under `com/example/sftping/`:
 
-- `ui/{connection,files,transfers,theme}` — Compose screens + `@HiltViewModel`s
+- `ui/{connection,files,transfers,editor,theme}` — Compose screens + `@HiltViewModel`s
 - `transfer/` — `TransferManager` (thin state holder) + `strategy/` + `usecase/`
-- `sftp/` — `ISftpClient`/`JschSftpClient`, `RemoteFile`, `HostKeyResult`
+- `sftp/` — `ISftpClient`/`JschSftpClient` (incl. `readText`/`writeText`), `RemoteFile`, `HostKeyResult`, `SessionState` (incl. `connected` StateFlow)
 - `security/` — `Fingerprint`, `KnownHostsStore` (DataStore-backed), `TrustedHost`, `KeystoreCrypto`, `SecretStore`
-- `data/connection/` (DataStore) + `data/transfer/` (Room entity/DAO/db)
+- `data/connection/` (DataStore) + `data/transfer/` (Room) + `data/editor/` (DataStore locations + Room `sftping_editor.db` pending edits)
 - `work/` — `SftpTransferWorker` (`@HiltWorker`)
-- `di/` — `SftpModule`, `SecurityModule`, `DatabaseModule`
+- `di/` — `SftpModule`, `SecurityModule`, `DatabaseModule`, `EditorModule`
 
 > Known gaps: private-key auth UI exists but isn't wired in `JschSftpClient`.
-> See `README.md` and `MEMORY.md`.
+> The remote editor is text-only, one file at a time, edit-existing-only, and
+> saves last-write-wins (no server-side conflict detection). See `README.md` and `MEMORY.md`.
 
 ## Commands
 

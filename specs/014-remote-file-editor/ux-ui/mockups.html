@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>sftping — 014 Remote file editor mockups</title>
+<style>
+  :root{
+    --primary:#6650A4; --on-primary:#FFFFFF;
+    --primary-container:#EADDFF; --on-primary-container:#21005D;
+    --secondary-container:#E8DEF8; --on-secondary-container:#1D192B;
+    --tertiary-container:#FFD8E4; --on-tertiary-container:#31111D;
+    --surface:#FEF7FF; --surface-container:#F3EDF7; --surface-container-high:#ECE6F0; --surface-container-highest:#E6E0E9;
+    --on-surface:#1C1B1F; --on-surface-variant:#49454F;
+    --outline:#79747E; --outline-variant:#CAC4D0;
+    --error:#B3261E; --tracker:#E9E7EE; --green:#3B6939; --amber:#7A5900;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{width:1460px; height:900px; overflow:hidden;}
+  body{background:radial-gradient(1200px 600px at 50% -10%, #F1EFF5 0%, var(--tracker) 60%);
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--on-surface);
+    display:flex; flex-direction:column; padding:26px 50px 30px;}
+  .head{display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px;}
+  .kicker{font-size:11px; letter-spacing:.32em; text-transform:uppercase; color:var(--primary); font-weight:700;}
+  .title{font-size:24px; font-weight:680; letter-spacing:-.01em; color:#211B2E;}
+  .sub{font-size:12.5px; color:var(--on-surface-variant);}
+  .flowtag{font-size:11px; color:var(--on-surface-variant); display:flex; gap:8px; align-items:center;}
+  .flowtag b{color:var(--primary);}
+
+  .row{flex:1; display:flex; gap:28px; align-items:flex-start; justify-content:center;}
+  .frameWrap{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .phone{width:312px; height:700px; background:var(--surface); border-radius:30px; border:1px solid rgba(33,27,46,.10);
+    box-shadow:0 1px 1px rgba(33,27,46,.04), 0 18px 40px -18px rgba(33,27,46,.35); position:relative; overflow:hidden; display:flex; flex-direction:column;}
+  .caption{font-size:12px; font-weight:600; color:#37304A;} .caption span{font-weight:400; color:var(--on-surface-variant);}
+  .step{display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:var(--primary); color:#fff; font-size:11px; font-weight:700; margin-right:6px;}
+
+  .status{height:26px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; font-size:11px; font-weight:600; flex:0 0 auto;}
+  .appbar{height:52px; flex:0 0 auto; display:flex; align-items:center; gap:6px; padding:0 8px 0 12px;}
+  .appbar .t{font-size:18px; font-weight:600; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .appbar .t small{display:block; font-size:11px; font-weight:500; color:var(--on-surface-variant);}
+  .ico{width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--on-surface-variant); flex:0 0 auto;}
+  .ico.disabled{opacity:.3;}
+  .ico.active{color:var(--primary);}
+  .body{flex:1; overflow:hidden; padding:6px 16px 0;}
+  .mono{font-family:ui-monospace,Menlo,monospace;}
+
+  .nav{height:74px; flex:0 0 auto; background:var(--surface-container); display:flex; align-items:center; justify-content:space-around; padding-bottom:8px;}
+  .nav .item{display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--on-surface-variant); font-size:10px; font-weight:600;}
+  .nav .pill{width:54px; height:30px; border-radius:999px; display:flex; align-items:center; justify-content:center; color:var(--on-surface-variant);}
+  .nav .item.on .pill{background:var(--secondary-container); color:var(--on-secondary-container);} .nav .item.on{color:var(--on-surface);}
+
+  /* location list */
+  .sectlbl{font-size:12px; font-weight:700; color:var(--on-surface-variant); letter-spacing:.06em; margin:6px 4px 8px;}
+  .locItem{display:flex; align-items:center; gap:14px; padding:12px 4px; border-bottom:1px solid var(--outline-variant);}
+  .locicon{width:42px; height:42px; border-radius:12px; background:var(--surface-container); display:flex; align-items:center; justify-content:center; flex:0 0 auto; color:var(--primary);}
+  .loc-main{flex:1; min-width:0;} .loc-main .n{font-size:14.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;} .loc-main .s{font-size:11.5px; color:var(--on-surface-variant); margin-top:2px;}
+  .dot{display:inline-block; width:7px; height:7px; border-radius:50%; vertical-align:middle; margin-right:5px;}
+  .dot.pending{background:var(--amber);} .dot.synced{background:var(--green);}
+
+  .emptywrap{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0 30px; color:var(--on-surface-variant);}
+  .emptywrap .big{width:74px; height:74px; border-radius:22px; background:var(--surface-container); display:flex; align-items:center; justify-content:center; color:var(--primary); margin-bottom:16px;}
+  .emptywrap h4{font-size:16px; color:var(--on-surface); font-weight:600; margin-bottom:6px;}
+  .emptywrap p{font-size:12.5px; line-height:1.5;}
+
+  .fab{position:absolute; right:18px; bottom:88px; height:52px; border-radius:16px; background:var(--primary); color:#fff; display:flex; align-items:center; gap:8px; padding:0 18px; font-size:14px; font-weight:600; box-shadow:0 6px 14px -4px rgba(33,27,46,.45);}
+
+  .scrim{position:absolute; inset:0; background:rgba(20,16,28,.40);}
+
+  /* editor surface */
+  .edbar{display:flex; align-items:center; gap:4px; padding:6px 6px; border-bottom:1px solid var(--outline-variant); flex:0 0 auto;}
+  .edtool{width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; color:var(--on-surface-variant);}
+  .edtool.disabled{opacity:.3;}
+  .edtool.active{color:var(--primary); background:var(--primary-container);}
+  .filechip{flex:1; min-width:0; padding:0 6px;}
+  .filechip .n{font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .filechip .p{font-size:10.5px; color:var(--on-surface-variant); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .code{flex:1; overflow:hidden; padding:12px 12px; font-family:ui-monospace,Menlo,monospace; font-size:12px; line-height:1.7; color:var(--on-surface); background:var(--surface);}
+  .code.dim{background:var(--surface-container-high); color:var(--on-surface-variant);}
+  .ln{display:flex; gap:12px;} .ln .g{color:var(--outline); width:16px; text-align:right; user-select:none;}
+  .kw{color:var(--primary); font-weight:600;} .st{color:var(--green);} .cm{color:var(--outline);}
+  .caret{display:inline-block; width:1.5px; height:14px; background:var(--primary); vertical-align:-2px; margin-left:1px;}
+
+  .statusbar{flex:0 0 auto; height:32px; display:flex; align-items:center; gap:8px; padding:0 14px; font-size:11px; font-weight:600; border-top:1px solid var(--outline-variant);}
+  .statusbar.ok{color:var(--green);} .statusbar.pending{color:var(--amber); background:#FBF2DA;} .statusbar.off{color:var(--on-surface-variant); background:var(--surface-container-high);}
+
+  .offbanner{margin:0 0 10px; background:#FBF2DA; border:1px solid #E6D08A; border-radius:12px; padding:10px 12px; display:flex; gap:10px; align-items:flex-start; font-size:11.5px; color:#5C4600;}
+
+  /* add-location sheet */
+  .sheet{position:absolute; left:0; right:0; bottom:0; background:var(--surface-container-high); border-radius:28px 28px 0 0; padding:14px 22px 22px;}
+  .grab{width:34px; height:4px; border-radius:2px; background:var(--outline-variant); margin:0 auto 14px;}
+  .sheet h3{font-size:18px; font-weight:600; margin-bottom:16px;}
+  .field{background:var(--surface); border:1px solid var(--outline-variant); border-radius:12px; padding:9px 14px; margin-bottom:12px;}
+  .field .lbl{font-size:11px; color:var(--primary); font-weight:600;} .field .v{font-size:14px; margin-top:2px;} .field .v.ph{color:var(--outline);}
+  .acts{display:flex; justify-content:flex-end; gap:8px; align-items:center; margin-top:4px;}
+  .tbtn{padding:11px 16px; border-radius:999px; font-size:14px; font-weight:600; color:var(--primary);}
+  .tbtn.fill{background:var(--primary); color:#fff; display:flex; align-items:center; gap:8px;}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div>
+      <div class="kicker">sftping · feature 014</div>
+      <div class="title">Remote file editor — new Editor tab</div>
+      <div class="sub">Saved locations · autosave with offline cache &amp; re-sync · undo/redo. Material 3.</div>
+    </div>
+    <div class="flowtag"><b>FLOW</b> &nbsp;Locations&nbsp;→&nbsp;Edit (online)&nbsp;→&nbsp;Offline cache&nbsp;→&nbsp;Disconnected</div>
+  </div>
+
+  <div class="row">
+
+    <!-- 1: Saved locations list -->
+    <div class="frameWrap">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>•••</span></div>
+        <div class="appbar"><div class="t">Editor<small>Saved remote files</small></div><div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="#49454F"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></div></div>
+        <div class="body">
+          <div class="sectlbl">SAVED LOCATIONS</div>
+          <div class="locItem"><div class="locicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></div><div class="loc-main"><div class="n">nginx.conf</div><div class="s mono">/etc/nginx/nginx.conf</div></div><div class="ico" style="width:32px;height:32px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="2"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></div></div>
+          <div class="locItem"><div class="locicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></div><div class="loc-main"><div class="n">deploy.sh <span class="dot pending"></span></div><div class="s"><span style="color:var(--amber)">Pending sync</span> · <span class="mono">/home/ops/deploy.sh</span></div></div><div class="ico" style="width:32px;height:32px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="2"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></div></div>
+          <div class="locItem"><div class="locicon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></div><div class="loc-main"><div class="n">.env</div><div class="s mono">/srv/app/.env</div></div><div class="ico" style="width:32px;height:32px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="2"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></div></div>
+        </div>
+        <div class="fab"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add location</div>
+        <div class="nav">
+          <div class="item"><div class="pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></div>Connect</div>
+          <div class="item"><div class="pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div>Files</div>
+          <div class="item"><div class="pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 8h13l-3-4 1.4-1L21 8l-5.6 5-1.4-1 3-4H4zM20 16H7l3-4-1.4-1L3 16l5.6 5 1.4-1-3-4h13z"/></svg></div>Transfers</div>
+          <div class="item on"><div class="pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 20h4l10-10-4-4L4 16v4zM14 6l4 4"/></svg></div>Editor</div>
+        </div>
+      </div>
+      <div class="caption"><span class="step">1</span>Saved locations <span>· add · edit · delete · sync dot</span></div>
+    </div>
+
+    <!-- 2: Editing, connected, saved -->
+    <div class="frameWrap">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>•••</span></div>
+        <div class="edbar">
+          <div class="edtool"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></div>
+          <div class="filechip"><div class="n">nginx.conf</div><div class="p mono">/etc/nginx/nginx.conf</div></div>
+          <div class="edtool active" title="Undo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v0a5 5 0 0 1-5 5H8"/></svg></div>
+          <div class="edtool disabled" title="Redo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0-5 5v0a5 5 0 0 0 5 5h7"/></svg></div>
+          <div class="edtool active" title="Save"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></div>
+        </div>
+        <div class="code">
+          <div class="ln"><span class="g">1</span><span><span class="kw">worker_processes</span> auto;</span></div>
+          <div class="ln"><span class="g">2</span><span><span class="kw">events</span> { <span class="kw">worker_connections</span> 1024; }</span></div>
+          <div class="ln"><span class="g">3</span><span></span></div>
+          <div class="ln"><span class="g">4</span><span><span class="kw">http</span> {</span></div>
+          <div class="ln"><span class="g">5</span><span>&nbsp;&nbsp;<span class="kw">server</span> {</span></div>
+          <div class="ln"><span class="g">6</span><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">listen</span> <span class="st">443 ssl</span>;<span class="caret"></span></span></div>
+          <div class="ln"><span class="g">7</span><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">server_name</span> <span class="st">example.com</span>;</span></div>
+          <div class="ln"><span class="g">8</span><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm"># root of the site</span></span></div>
+          <div class="ln"><span class="g">9</span><span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">root</span> /var/www/html;</span></div>
+          <div class="ln"><span class="g">10</span><span>&nbsp;&nbsp;}</span></div>
+          <div class="ln"><span class="g">11</span><span>}</span></div>
+        </div>
+        <div class="statusbar ok"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Saved to server · 9:41</div>
+      </div>
+      <div class="caption"><span class="step">2</span>Edit — connected <span>· autosave · undo enabled</span></div>
+    </div>
+
+    <!-- 3: Offline, cached / pending sync -->
+    <div class="frameWrap">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>•••</span></div>
+        <div class="edbar">
+          <div class="edtool"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></div>
+          <div class="filechip"><div class="n">deploy.sh</div><div class="p mono">/home/ops/deploy.sh</div></div>
+          <div class="edtool active" title="Undo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v0a5 5 0 0 1-5 5H8"/></svg></div>
+          <div class="edtool active" title="Redo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0-5 5v0a5 5 0 0 0 5 5h7"/></svg></div>
+          <div class="edtool active" title="Save"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></div>
+        </div>
+        <div class="code">
+          <div class="offbanner"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C4600" stroke-width="1.9" style="flex:0 0 auto;margin-top:1px"><path d="M1 1l22 22M16.7 16.7A11 11 0 0 1 5 6.3M8.5 8.5a6 6 0 0 0-2 1.5M12 20h.01"/></svg><span>You're offline. Changes are cached on this device and will sync when you reconnect.</span></div>
+          <div class="ln"><span class="g">1</span><span><span class="cm">#!/usr/bin/env bash</span></span></div>
+          <div class="ln"><span class="g">2</span><span><span class="kw">set</span> -euo pipefail</span></div>
+          <div class="ln"><span class="g">3</span><span></span></div>
+          <div class="ln"><span class="g">4</span><span><span class="kw">echo</span> <span class="st">"Deploying v2.4.1"</span><span class="caret"></span></span></div>
+          <div class="ln"><span class="g">5</span><span>rsync -az ./dist/ ops@web:/srv</span></div>
+          <div class="ln"><span class="g">6</span><span>systemctl restart app</span></div>
+        </div>
+        <div class="statusbar pending"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Cached · pending sync (offline)</div>
+      </div>
+      <div class="caption"><span class="step">3</span>Offline edit <span>· cached locally · re-sync on reconnect</span></div>
+    </div>
+
+    <!-- 4: Disconnected, editor greyed out -->
+    <div class="frameWrap">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>•••</span></div>
+        <div class="edbar">
+          <div class="edtool"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg></div>
+          <div class="filechip"><div class="n">.env</div><div class="p mono">/srv/app/.env</div></div>
+          <div class="edtool disabled" title="Undo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v0a5 5 0 0 1-5 5H8"/></svg></div>
+          <div class="edtool disabled" title="Redo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0-5 5v0a5 5 0 0 0 5 5h7"/></svg></div>
+          <div class="edtool disabled" title="Save"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></div>
+        </div>
+        <div class="code dim">
+          <div class="ln"><span class="g">1</span><span>APP_ENV=production</span></div>
+          <div class="ln"><span class="g">2</span><span>PORT=8080</span></div>
+          <div class="ln"><span class="g">3</span><span>DB_HOST=10.0.0.5</span></div>
+          <div class="ln"><span class="g">4</span><span>DB_NAME=appdb</span></div>
+        </div>
+        <div class="statusbar off"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l22 22M16.7 16.7A11 11 0 0 1 5 6.3M8.5 8.5a6 6 0 0 0-2 1.5M12 20h.01"/></svg>Not connected — connect to edit</div>
+        <div class="nav">
+          <div class="item"><div class="pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></div>Connect</div>
+          <div class="item"><div class="pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div>Files</div>
+          <div class="item"><div class="pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 8h13l-3-4 1.4-1L21 8l-5.6 5-1.4-1 3-4H4zM20 16H7l3-4-1.4-1L3 16l5.6 5 1.4-1-3-4h13z"/></svg></div>Transfers</div>
+          <div class="item on"><div class="pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 20h4l10-10-4-4L4 16v4zM14 6l4 4"/></svg></div>Editor</div>
+        </div>
+      </div>
+      <div class="caption"><span class="step">4</span>Disconnected <span>· editor greyed &amp; read-only</span></div>
+    </div>
+
+  </div>
+</body>
+</html>

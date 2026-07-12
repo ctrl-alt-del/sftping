@@ -30,6 +30,12 @@ resumable, pausable, background transfers.
   foreground service with a live progress notification, surviving app
   backgrounding and screen-off.
 - **Pause / resume / cancel** from the Transfers screen, and **retry a failed upload** individually or **retry all failed uploads** at once. Transfers are grouped into Active, Failed (collapsible), and Completed (collapsible) sections.
+- **Remote text editor.** A dedicated **Editor** tab manages a list of saved
+  remote file locations (add / edit / delete, persisted across restarts and
+  usable even while disconnected). Open a location to edit a text file in place
+  with **autosave**, **undo/redo**, and a manual **save**. Edits made while
+  offline are **cached locally** (Room, `sftping_editor.db`) and **re-synced** to
+  the server on reconnect; the editor greys out when not connected.
 - **Encrypted credentials at rest.** Passwords are sealed with an
   **Android Keystore** AES-256-GCM key and stored as ciphertext in DataStore,
   separate from the (non-secret) connection profile.
@@ -56,12 +62,14 @@ versions there, not inline in `build.gradle.kts`.
 ## Architecture
 
 Single-Activity app. `MainActivity` hosts a Material 3 `NavigationSuiteScaffold`
-with three tabs whose visibility is state-driven (no NavHost):
+with four tabs whose visibility is state-driven (no NavHost):
 
 ```
 Connect  ──connected──▶  Files  ──"Not connected"──▶  Connect
                           │
-                          └─ enqueue ─▶  Transfers (always accessible)
+                          ├─ enqueue ─▶  Transfers (always accessible)
+                          │
+                          └─────────▶  Editor (always accessible; edits gated on connection)
 ```
 
 Transfers flow through a layered, protocol-agnostic pipeline so new transports
@@ -77,34 +85,37 @@ SftpTransferWorker  ──▶  DownloadUseCase / UploadUseCase  ──▶  Trans
               Room (sftping.db)  ──Flow──▶  TransferManager (StateFlow)  ──▶  UI
 ```
 
-Dependency injection is wired with Hilt through three modules:
+Dependency injection is wired with Hilt through four modules:
 
 - **`SftpModule`** — binds `JschSftpClient → ISftpClient`, `SftpTransferStrategy → TransferStrategy`
 - **`SecurityModule`** — binds `KnownHostsStore`, provides the `AndroidKeyStore`
 - **`DatabaseModule`** — provides the Room `TransferDatabase` (`sftping.db`) and DAO
+- **`EditorModule`** — provides the Room `EditorDatabase` (`sftping_editor.db`) + DAO and binds `EditorLocationRepository`
 
 ### Project structure
 
 ```
 app/src/main/java/com/example/sftping/
-├── MainActivity.kt            App shell, 3-tab navigation
+├── MainActivity.kt            App shell, 4-tab navigation
 ├── SftpingApplication.kt      @HiltAndroidApp + WorkManager Configuration.Provider
 ├── ui/
 │   ├── connection/            Connect form + host-key dialog (ViewModel)
 │   ├── files/                 Remote browser, multi-select, SAF upload/download
 │   ├── transfers/             Active/Failed/Completed grouped list, collapsible sections, retry-all, swipe-to-cancel, detail dialog
+│   ├── editor/                Remote text editor: locations list, editor pane, UndoStack (ViewModel)
 │   └── theme/                 Material 3 theme (dynamic color on Android 12+)
 ├── transfer/
 │   ├── TransferManager.kt     Thin @Singleton StateFlow holder over the DAO
 │   ├── strategy/              TransferStrategy + SftpTransferStrategy + TransferProgress
 │   └── usecase/               Enqueue/Download/Upload/Pause/Resume/Cancel
-├── sftp/                      ISftpClient, JschSftpClient, RemoteFile, HostKeyResult
+├── sftp/                      ISftpClient, JschSftpClient, RemoteFile, HostKeyResult, SessionState
 ├── security/                  Fingerprint, KnownHostsStore, TrustedHost, KeystoreCrypto, SecretStore
 ├── data/
 │   ├── connection/            ConnectionProfile + DataStore-backed repository
-│   └── transfer/              Room entity, DAO, database
+│   ├── transfer/              Room entity, DAO, database (sftping.db)
+│   └── editor/                EditorLocation (DataStore) + PendingEdit Room DB (sftping_editor.db)
 ├── work/                      SftpTransferWorker (@HiltWorker, foreground service)
-└── di/                        SftpModule, SecurityModule, DatabaseModule
+└── di/                        SftpModule, SecurityModule, DatabaseModule, EditorModule
 ```
 
 ## Build & Run
@@ -140,6 +151,9 @@ strategy progress, view models, etc.). The single instrumented test in
 - **Release build is unminified** (R8 disabled) and the **`applicationId` is
   `com.example.sftping`** — both must change before a Play Store release
   (Google rejects `com.example.*`).
+- **The remote editor is text-only, one file at a time, and edit-existing-only**
+  (no create-on-save). Saves are **last-write-wins** with no server-side conflict
+  detection.
 
 ## Development Workflow
 

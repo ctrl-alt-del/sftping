@@ -145,6 +145,28 @@
   @Composable (() -> Unit)?` for per-section action buttons (e.g., "Retry all"). For
   zero-item groups, wrap the section in `if (group.isNotEmpty())` — no header, no ghost
   toggle. `Icons.Filled.KeyboardArrowDown` is in material-icons-core (no dependency bump).
+- ⚡ `#build` **`android.util.Log` throws in plain JVM unit tests** ("Method w/e/d not
+  mocked"). Any non-error code path that calls `Log.*` (e.g. an offline save-fallback that
+  logs before caching) will abort mid-method under `testDebug`. Fix: add
+  `testOptions { unitTests.isReturnDefaultValues = true }` to `app/build.gradle.kts`.
+  Prior features never hit this because their `Log` calls were only on already-failing paths.
+- ⚡ `#build` **Hilt `@Inject constructor` params need a binding — no defaulted primitives.**
+  A `private val autosaveDelayMs: Long = 2_000L` constructor arg fails Hilt graph resolution
+  (no `Long` binding). Make tunables an `internal var` (overridable in tests) instead of a
+  constructor parameter.
+- `#build` **Room DAO real behavior isn't JVM-testable (no Robolectric here).** Follow the
+  `TransferManagerTest.FakeDao` precedent: hand-write an in-memory fake implementing the DAO
+  interface that mirrors `@Insert(OnConflictStrategy.REPLACE)` (upsert-by-PK) semantics, and
+  unit-test the consumer against the fake.
+- `#ui` **Undo/Redo/Back icons are in `Icons.AutoMirrored`** (`Undo`, `Redo`, `ArrowBack`).
+  The non-mirrored variants are deprecated in current Material icons and warn at compile time.
+- `#ui` **Reactive connection gate**: `SessionState.connected: StateFlow<Boolean>` flipped by
+  `JschSftpClient` (true after connect, false in `disconnectInternal()`). A ViewModel
+  `collect`s it to grey out UI when disconnected AND to trigger work on the `false → true`
+  (reconnect) transition — no NavHost, no ConnectivityManager callbacks needed.
+- `#api` **SFTP text I/O**: `readText` = `ChannelSftp.get(path)` → `readBytes().toString(UTF_8)`;
+  `writeText` = `content.byteInputStream(UTF_8)` → `put(stream, path, OVERWRITE)`. Open a fresh
+  channel per op over the shared session (same non-thread-safe rule as transfers).
 
 ## 🔧 Patterns That Worked
 <!-- Reusable patterns discovered across features -->
@@ -224,6 +246,23 @@
   use case class needed; the filter ensures only retryable items are processed. The
   individual `RetryUseCase` guard (FAILED+UPLOAD check) serves as a belt-and-suspenders
   safety net.
+- **Interface + DataStore impl + InMemory double for repositories**: when a ViewModel needs
+  a persistence-backed store that must also be JVM-unit-testable, model it as an `interface`
+  with a `@Singleton` DataStore implementation and an `InMemory*` double (mirrors
+  `KnownHostsStore`). Bind the impl with `@Binds`. Avoids `Context` in tests entirely.
+  Used for `EditorLocationRepository` (014).
+- **Cache-preferred open (offline-safe editing)**: when opening a remote resource that may
+  have un-synced local edits, read the local cache (`PendingEdit` Room row keyed by remote
+  path) FIRST and only fall back to the network read if absent. Guarantees offline work is
+  never clobbered by stale server content. Deleting the parent record also deletes its
+  pending edit. (014)
+- **Debounced autosave that's still testable**: the ViewModel schedules a `delay(N)` →
+  `saveNow()` job (cancel-and-reschedule on each edit) but ALSO exposes `saveNow()` directly.
+  Tests drive `saveNow()` and never time the debounce (dodges the `runTest`-real-time trap).
+  `saveNow` routes online→`writeText`+clear-pending, offline/failure→upsert `PendingEdit`. (014)
+- **Two-mode single screen (no NavHost)**: one `@Composable` switches between a list view and
+  a detail/editor pane based on a single `uiState.openLocation`. Keeps the tab-based shell
+  NavHost-free while still supporting master→detail navigation. (014)
 
 ## 📐 Architecture Decisions
 <!-- ADRs made during spec-driven development -->
@@ -264,21 +303,33 @@
   collapsible with multi-select). Grouping is pure Compose — computed from the existing
   `manager.items` StateFlow with no new DAO queries. "Retry all" reuses the per-item
   `RetryUseCase` in a loop.
+- ADR-013: Offline editor edits persist in a **separate** Room DB (`sftping_editor.db`,
+  `PendingEdit` keyed by remote path) rather than adding a table to the transfer DB — avoids
+  a transfer-store migration and keeps editor state isolated. Saved locations use DataStore +
+  JSON (public, list-shaped); pending edit **content** uses Room (larger, upsert-by-key,
+  survives process death). (014)
+- ADR-014: Connection state is a `StateFlow<Boolean>` on the `@Singleton SessionState`,
+  flipped by `JschSftpClient` on connect/disconnect. Gives the Editor a reactive grey-out gate
+  and a re-sync trigger without a NavHost or ConnectivityManager. Re-sync fires on the
+  `false → true` transition (user reconnecting via the Connect tab), not background network
+  callbacks. Editor saves are last-write-wins (no server-side conflict detection). (014)
 
 ## 📂 Code Ownership Map
 
 | File | Touched By | Why |
 |------|-----------|-----|
 | `SftpingApplication.kt` | 001, 004 | @HiltAndroidApp entry point; `Configuration.Provider` for HiltWorkerFactory in 004 |
-| `MainActivity.kt` | 001 | App shell, nav, @AndroidEntryPoint |
+| `MainActivity.kt` | 001, 014 | App shell, nav, @AndroidEntryPoint; added Editor tab (014) |
 | `security/Fingerprint.kt`, `KnownHostsStore.kt`, `TrustedHost.kt` | 001, 007 | TOFU; `KnownHostsStore` persisted via DataStore (007); `TrustedHost` JSON model (007) |
-| `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003, 007, 008 | Session in 001; transfer methods in 002; resume in 003; persist keyType (007); `homeDirectory()` (008); per-operation channel (concurrency fix) |
-| `sftp/SessionState.kt` | 008, 010 | `@Singleton` cross-VM holder: resolved initial directory (008) + connection `epoch` for last-path memory (010) |
+| `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003, 007, 008, 014 | Session in 001; transfer methods in 002; resume in 003; persist keyType (007); `homeDirectory()` (008); per-operation channel (concurrency fix); `readText`/`writeText` + flips `SessionState.connected` (014) |
+| `sftp/SessionState.kt` | 008, 010, 014 | `@Singleton` cross-VM holder: resolved initial directory (008) + connection `epoch` for last-path memory (010) + `connected` StateFlow gate/re-sync trigger (014) |
 | `security/KeystoreCrypto.kt`, `SecretStore.kt` | 001 | Credential crypto; reusable |
 | `data/connection/ConnectionProfile.kt`, `ConnectionRepository.kt` | 001, 008 | Recent connection persistence; `defaultDirectory` added in 008 |
 | `data/transfer/TransferTask.kt`, `TransferDatabase.kt`, `TransferTaskDao.kt` | 003 | Room transfer-state persistence (`sftping.db`) |
+| `data/editor/` (`EditorLocation.kt`, `EditorLocationRepository.kt`, `PendingEdit.kt`, `PendingEditDao.kt`, `EditorDatabase.kt`) | 014 | Saved locations (DataStore+JSON) + offline pending-edit cache (Room `sftping_editor.db`) |
 | `di/SecurityModule.kt`, `SftpModule.kt` | 001, 006, 007 | Hilt bindings; `TransferStrategy` binding added in 006; KnownHostsStore→DataStore bind (007) |
 | `di/DatabaseModule.kt` | 003 | Room DB + DAO providers |
+| `di/EditorModule.kt` | 014 | `EditorDatabase`/DAO providers + `EditorLocationRepository` bind |
 | `transfer/TransferItem.kt`, `TransferManager.kt` | 002, 003, 006, 011, 012, 013 | StateFlow holder in 002; Room-backed in 003; thinned to coordinator in 006; `completedUploadPaths` for uploaded-file memory (011); `retry()` (012); `retryAllFailed()` (013) |
 | `transfer/strategy/` (`TransferStrategy.kt`, `SftpTransferStrategy.kt`, `TransferProgress.kt`) | 006 | Protocol layer (JSch → `Flow<TransferProgress>`) |
 | `transfer/usecase/` (Enqueue/Download/Upload/Pause/Resume/Cancel/Retry) | 003, 006, 012 | Transfer business logic (offsets, retries, persistence); `RetryUseCase` for failed uploads (012) |
@@ -286,6 +337,8 @@
 | `ui/connection/` | 001, 007, 008, 010 | Connection form + VM; trusted-hosts manager + revoke (007); password show/hide + default-directory field (008); bumps `SessionState.epoch` on connect (010) |
 | `ui/files/` (incl. `FileView.kt`, `UploadCandidate.kt`) | 001, 002, 008, 009, 010, 011 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009); `onEnterScreen` remembers last path across tab switches (010); batch upload sheet + multi-download + uploaded memory (011) |
 | `ui/transfers/` | 002, 004, 012, 013 | Transfers list, progress, pause/resume/cancel, swipe + multi-select; retry failed uploads (012); collapsible sections + retry-all (013) |
+| `ui/editor/` (`EditorScreen.kt`, `EditorViewModel.kt`, `UndoStack.kt`) | 014 | Remote text editor: locations list + editor pane, autosave/offline-cache/reconnect-flush VM, pure UndoStack |
+| `app/build.gradle.kts` | 011, 014 | `documentfile` dep (011); `unitTests.isReturnDefaultValues` for Log-in-tests (014) |
 
 ## 🐛 Common Bugs Fixed
 <!-- Real defects hit during development + the fix. See feature takeaways.md for context. -->
@@ -331,6 +384,16 @@
   channel. Also fixed an upload cache leak: the worker's success cleanup deleted the stale
   pre-rename `task.localUri`; now it deletes the real cache file
   `sftping_ul_<id>_<name>`.
+- **014** ⚡ `EditorViewModel`'s offline save-fallback test failed (`expected:<edited> but
+  was:<null>`) because the catch block calls `android.util.Log.w` before caching, and `Log`
+  throws "not mocked" in plain JVM tests — aborting before the `PendingEdit` upsert. Fix:
+  `testOptions { unitTests.isReturnDefaultValues = true }`. (Keeping the log is required by
+  the fix-upload rule against silently swallowing exceptions.)
+- **014** Hilt build failed on `EditorViewModel(... autosaveDelayMs: Long = 2_000L)` — no
+  binding for `Long`. Fix: make it an `internal var`, not a constructor param.
+- **014** `EditorLocationRepository` as a concrete DataStore class wasn't unit-testable
+  (needs `Context`). Fix: extract an interface with a DataStore impl + `InMemory*` double
+  (KnownHostsStore pattern), bound via `@Binds`.
 
 ## 🧠 AI Workflow Rule
 
