@@ -7,9 +7,12 @@ import com.example.sftping.sftp.RemoteFile
 import com.example.sftping.sftp.SessionState
 import com.example.sftping.sftp.SftpException
 import com.example.sftping.transfer.TransferManager
+import com.example.sftping.util.InMemoryClipboard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -33,6 +36,7 @@ class FilesViewModelTest {
     private val transferManager = mock<TransferManager>()
     private val context = mock<Context>()
     private val sessionState = SessionState()
+    private val clipboard = InMemoryClipboard()
     private val testDispatcher = UnconfinedTestDispatcher()
 
     @Before
@@ -52,7 +56,7 @@ class FilesViewModelTest {
             )
         ).`when`(client).listFiles("/")
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.loadFiles("/")
 
         val files = vm.uiState.files
@@ -69,7 +73,7 @@ class FilesViewModelTest {
     fun `navigateTo builds correct path and loads files`() = runTest {
         doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.loadFiles("/")
         vm.navigateTo("ops")
 
@@ -82,7 +86,7 @@ class FilesViewModelTest {
     fun `navigateBack returns to previous directory`() = runTest {
         doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.loadFiles("/")
         vm.navigateTo("ops")
         vm.navigateBack()
@@ -95,7 +99,7 @@ class FilesViewModelTest {
     fun `toggleSelection enters and exits multiSelectMode`() = runTest {
         doReturn(emptyList<RemoteFile>()).`when`(client).listFiles("/")
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.loadFiles("/")
 
         vm.toggleSelection("/a.txt")
@@ -111,7 +115,7 @@ class FilesViewModelTest {
     fun `deleteSelected calls delete and refreshes`() = runTest {
         doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.loadFiles("/")
 
         vm.toggleSelection("/a.txt")
@@ -128,7 +132,7 @@ class FilesViewModelTest {
         doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
         val file = RemoteFile("old.txt", "/old.txt", 100, 0, false)
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.loadFiles("/")
         vm.startRename(file)
         assertEquals("old.txt", vm.uiState.renamingFile?.name)
@@ -143,7 +147,7 @@ class FilesViewModelTest {
         doAnswer { throw SftpException("Permission denied") }
             .`when`(client).listFiles("/")
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.loadFiles("/")
 
         assertEquals("Permission denied", vm.uiState.error)
@@ -155,7 +159,7 @@ class FilesViewModelTest {
         doReturn(listOf(RemoteFile("file.txt", "/home/user/file.txt", 100, 0, false)))
             .`when`(client).listFiles("/home/user")
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.loadFiles()
 
         assertEquals("/home/user", vm.uiState.currentPath)
@@ -171,7 +175,7 @@ class FilesViewModelTest {
             )
         ).`when`(client).listFiles("/")
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.loadFiles("/")
         assertFalse(vm.uiState.files.any { it.name == ".hidden" })
 
@@ -189,7 +193,7 @@ class FilesViewModelTest {
             )
         ).`when`(client).listFiles("/")
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.loadFiles("/")
 
         vm.setSearchQuery("log")
@@ -206,7 +210,7 @@ class FilesViewModelTest {
             )
         ).`when`(client).listFiles("/")
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.loadFiles("/")
         assertEquals(listOf("a.txt", "b.txt"), vm.uiState.files.map { it.name })
 
@@ -219,7 +223,7 @@ class FilesViewModelTest {
     fun `navigateTo clears search but keeps sort and hidden`() = runTest {
         doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.loadFiles("/")
         vm.setSearchQuery("x")
         vm.setSortMode(SortMode.SIZE)
@@ -238,7 +242,7 @@ class FilesViewModelTest {
         sessionState.initialDirectory = "/home/u"
         doReturn(emptyList<RemoteFile>()).`when`(client).listFiles("/home/u")
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.onEnterScreen()
 
         assertEquals("/home/u", vm.uiState.currentPath)
@@ -251,7 +255,7 @@ class FilesViewModelTest {
         sessionState.initialDirectory = "/home/u"
         doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.onEnterScreen()
         vm.navigateTo("logs")
         assertEquals("/home/u/logs", vm.uiState.currentPath)
@@ -266,7 +270,7 @@ class FilesViewModelTest {
         sessionState.initialDirectory = "/home/u"
         doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
 
-        val vm = FilesViewModel(client, transferManager, context, sessionState)
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
         vm.onEnterScreen()
         vm.navigateTo("logs")
         assertTrue(vm.canGoBack())
@@ -277,6 +281,22 @@ class FilesViewModelTest {
 
         assertEquals("/srv", vm.uiState.currentPath)
         assertFalse(vm.canGoBack())
+    }
+
+    @Test
+    fun `copyPath places full path on clipboard and emits message`() = runTest {
+        doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
+        val emitted = mutableListOf<String>()
+        val job = launch { vm.message.collect { emitted.add(it) } }
+        advanceUntilIdle()
+
+        vm.copyPath(RemoteFile("hosts", "/etc/hosts", 100, 0, false))
+        advanceUntilIdle()
+
+        assertEquals("/etc/hosts", clipboard.lastText)
+        assertEquals(listOf("Path copied"), emitted)
+        job.cancel()
     }
 
     private fun assertNull(value: Any?) {

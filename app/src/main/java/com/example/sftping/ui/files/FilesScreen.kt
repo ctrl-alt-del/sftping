@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
@@ -92,6 +93,7 @@ fun FilesScreen(
 
     LaunchedEffect(Unit) { viewModel.onEnterScreen() }
     LaunchedEffect(Unit) { viewModel.navigateToConnection.collect { onNavigateToConnection() } }
+    LaunchedEffect(Unit) { viewModel.message.collect { snackbarHostState.showSnackbar(it) } }
     LaunchedEffect(state.error) { state.error?.let { snackbarHostState.showSnackbar(it) } }
 
     val uploadPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -257,7 +259,8 @@ fun FilesScreen(
                                 if (state.multiSelectMode) viewModel.toggleSelection(file.path)
                                 else if (file.isDirectory) viewModel.navigateTo(file.name)
                             },
-                            onSelect = { viewModel.toggleSelection(file.path) }
+                            onSelect = { viewModel.toggleSelection(file.path) },
+                            onCopyPath = { viewModel.copyPath(file) }
                         )
                     }
                 }
@@ -299,7 +302,8 @@ private fun FileRow(
     selected: Boolean,
     multiSelect: Boolean,
     onClick: () -> Unit,
-    onSelect: () -> Unit
+    onSelect: () -> Unit,
+    onCopyPath: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Box {
@@ -338,6 +342,11 @@ private fun FileRow(
             }
         }
         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+            DropdownMenuItem(
+                text = { Text("Copy path") },
+                leadingIcon = { Icon(Icons.Filled.ContentCopy, contentDescription = null) },
+                onClick = { menuExpanded = false; onCopyPath() }
+            )
             DropdownMenuItem(
                 text = { Text("Select") },
                 leadingIcon = { Icon(Icons.Filled.Check, contentDescription = null) },
