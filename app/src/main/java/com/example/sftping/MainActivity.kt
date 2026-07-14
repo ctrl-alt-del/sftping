@@ -69,7 +69,8 @@ fun SftpingShell() {
                 onConnected = { currentDestination = AppDestinations.FILES }
             )
             AppDestinations.FILES -> FilesScreen(
-                onNavigateToConnection = { currentDestination = AppDestinations.CONNECT }
+                onNavigateToConnection = { currentDestination = AppDestinations.CONNECT },
+                onNavigateToEditor = { currentDestination = AppDestinations.EDITOR }
             )
             AppDestinations.TRANSFERS -> TransfersScreen()
             AppDestinations.EDITOR -> EditorScreen()

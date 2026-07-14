@@ -83,6 +83,7 @@ import java.util.Locale
 @Composable
 fun FilesScreen(
     onNavigateToConnection: () -> Unit,
+    onNavigateToEditor: () -> Unit,
     viewModel: FilesViewModel = viewModel()
 ) {
     val state = viewModel.uiState
@@ -93,6 +94,7 @@ fun FilesScreen(
 
     LaunchedEffect(Unit) { viewModel.onEnterScreen() }
     LaunchedEffect(Unit) { viewModel.navigateToConnection.collect { onNavigateToConnection() } }
+    LaunchedEffect(Unit) { viewModel.navigateToEditor.collect { onNavigateToEditor() } }
     LaunchedEffect(Unit) { viewModel.message.collect { snackbarHostState.showSnackbar(it) } }
     LaunchedEffect(state.error) { state.error?.let { snackbarHostState.showSnackbar(it) } }
 
@@ -260,7 +262,8 @@ fun FilesScreen(
                                 else if (file.isDirectory) viewModel.navigateTo(file.name)
                             },
                             onSelect = { viewModel.toggleSelection(file.path) },
-                            onCopyPath = { viewModel.copyPath(file) }
+                            onCopyPath = { viewModel.copyPath(file) },
+                            onEdit = { viewModel.editFile(file) }
                         )
                     }
                 }
@@ -303,7 +306,8 @@ private fun FileRow(
     multiSelect: Boolean,
     onClick: () -> Unit,
     onSelect: () -> Unit,
-    onCopyPath: () -> Unit
+    onCopyPath: () -> Unit,
+    onEdit: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Box {
@@ -347,6 +351,13 @@ private fun FileRow(
                 leadingIcon = { Icon(Icons.Filled.ContentCopy, contentDescription = null) },
                 onClick = { menuExpanded = false; onCopyPath() }
             )
+            if (!file.isDirectory && EditableFileType.isEditable(file.name)) {
+                DropdownMenuItem(
+                    text = { Text("Edit") },
+                    leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                    onClick = { menuExpanded = false; onEdit() }
+                )
+            }
             DropdownMenuItem(
                 text = { Text("Select") },
                 leadingIcon = { Icon(Icons.Filled.Check, contentDescription = null) },

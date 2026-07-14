@@ -62,6 +62,9 @@ class FilesViewModel @Inject constructor(
     private val _navigateToConnection = MutableSharedFlow<Unit>()
     val navigateToConnection: SharedFlow<Unit> = _navigateToConnection
 
+    private val _navigateToEditor = MutableSharedFlow<Unit>()
+    val navigateToEditor: SharedFlow<Unit> = _navigateToEditor
+
     private val _message = MutableSharedFlow<String>()
     val message: SharedFlow<String> = _message
 
@@ -147,6 +150,12 @@ class FilesViewModel @Inject constructor(
     fun copyPath(file: RemoteFile) {
         clipboard.copy("Remote path", file.path)
         viewModelScope.launch { _message.emit("Path copied") }
+    }
+
+    /** Hand a remote file to the Editor tab for a transient open. */
+    fun editFile(file: RemoteFile) {
+        sessionState.pendingEditPath = file.path
+        viewModelScope.launch { _navigateToEditor.emit(Unit) }
     }
 
     fun toggleSelection(path: String) {

@@ -15,6 +15,11 @@ class SessionState @Inject constructor() {
     @Volatile
     var epoch: Int = 0
 
+    // Remote path handed from the Files tab to the Editor tab for a transient open.
+    // Consumed (set back to null) by the Editor once opened.
+    @Volatile
+    var pendingEditPath: String? = null
+
     private val _connected = MutableStateFlow(false)
 
     /** Reactive connection state: true while an SFTP session is live. */
