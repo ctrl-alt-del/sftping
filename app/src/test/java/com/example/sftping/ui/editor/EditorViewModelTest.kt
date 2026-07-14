@@ -292,6 +292,27 @@ class EditorViewModelTest {
         vm.open(loc)
         advanceUntilIdle()
         vm.onContentChange("edited")
+        // Structured status flag (JSch id == 3), message intentionally lacks the word
+        // "permission" to prove detection doesn't rely on string matching.
+        client.writeError = SftpException("Failed to write ${loc.remotePath}", permissionDenied = true)
+
+        vm.saveNow()
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.saveStatus is SaveStatus.Error)
+        assertNull(dao.get(loc.remotePath))
+    }
+
+    @Test
+    fun `permission-denied detected via message fallback also surfaces error`() = runTest {
+        repo.add(loc)
+        client.files[loc.remotePath] = "old"
+        session.setConnected(true)
+        val vm = vm()
+        advanceUntilIdle()
+        vm.open(loc)
+        advanceUntilIdle()
+        vm.onContentChange("edited")
         client.writeError = SftpException("Failed to write ${loc.remotePath}: Permission denied")
 
         vm.saveNow()

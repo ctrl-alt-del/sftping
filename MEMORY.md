@@ -185,7 +185,9 @@
   supplementary-groups, so any client-side "can I edit this?" check is a heuristic with
   false negatives (group/ACL access you can't see). Gate the **Edit** action on file
   *type* only (`EditableFileType` allowlist), never permissions, and surface write
-  failures at save time — like vim / VS Code Remote. (015)
+  failures at save time — like vim / VS Code Remote. Detect a denied write from JSch's
+  status id (`SftpException.id == ChannelSftp.SSH_FX_PERMISSION_DENIED`), not the message
+  string. (015)
 - `#build` **MutableSharedFlow (replay=0) races the test collector.** Emitting before the
   collector subscribes drops the event. In tests: `launch { flow.collect {...} }`,
   `advanceUntilIdle()`, *then* trigger the emit, then `advanceUntilIdle()` and assert. (015)
@@ -425,9 +427,11 @@
   (needs `Context`). Fix: extract an interface with a DataStore impl + `InMemory*` double
   (KnownHostsStore pattern), bound via `@Binds`.
 - **015** `EditorViewModel.doSave` (from 014) cached **any** save exception as pending-sync,
-  including permission-denied — silently hoarding an edit that can never sync. Fix: detect
-  permission-denied via the wrapped `SftpException` message chain and map it to
-  `SaveStatus.Error`; keep the offline-cache fallback only for connectivity failures.
+  including permission-denied — silently hoarding an edit that can never sync. Fix: the SFTP
+  layer sets a structured `SftpException.permissionDenied` flag from JSch's status id
+  (`ChannelSftp.SSH_FX_PERMISSION_DENIED == 3`); `doSave` maps that to `SaveStatus.Error`
+  (string message scan kept only as a locale-independent fallback), and reserves the
+  offline-cache fallback for connectivity failures.
 - **015** `copyPath` unit test flaked (`expected [Path copied] but was []`) because the
   `MutableSharedFlow` (replay=0) emitted before the test collector subscribed. Fix:
   subscribe → `advanceUntilIdle()` → act → `advanceUntilIdle()`.

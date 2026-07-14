@@ -253,6 +253,12 @@ class EditorViewModel @Inject constructor(
     }
 
     private fun isPermissionDenied(e: Throwable): Boolean {
+        // Prefer the structured flag from the SFTP layer (JSch status id == 3);
+        // fall back to message scanning for any non-SftpException failure path.
+        val fromStatus = generateSequence(e) { it.cause }
+            .filterIsInstance<SftpException>()
+            .any { it.permissionDenied }
+        if (fromStatus) return true
         val text = generateSequence(e) { it.cause }
             .mapNotNull { it.message }
             .joinToString(" ")

@@ -12,7 +12,7 @@ object EditableFileType {
         "json", "xml", "yml", "yaml", "toml", "ini", "conf", "cfg", "properties", "env",
         "sh", "bash", "zsh", "kt", "kts", "java", "py", "rb", "go", "rs", "c", "h",
         "cpp", "hpp", "js", "ts", "jsx", "tsx", "css", "scss", "html", "htm",
-        "gradle", "sql", "gitignore", "dockerfile"
+        "gradle", "sql", "gitignore"
     )
 
     private val editableFilenames = setOf(
