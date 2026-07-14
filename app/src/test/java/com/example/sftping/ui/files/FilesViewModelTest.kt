@@ -299,6 +299,22 @@ class FilesViewModelTest {
         job.cancel()
     }
 
+    @Test
+    fun `editFile stashes path in sessionState and emits navigate event`() = runTest {
+        doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
+        var navigated = false
+        val job = launch { vm.navigateToEditor.collect { navigated = true } }
+        advanceUntilIdle()
+
+        vm.editFile(RemoteFile("app.conf", "/etc/app.conf", 100, 0, false))
+        advanceUntilIdle()
+
+        assertEquals("/etc/app.conf", sessionState.pendingEditPath)
+        assertTrue(navigated)
+        job.cancel()
+    }
+
     private fun assertNull(value: Any?) {
         org.junit.Assert.assertNull(value)
     }
