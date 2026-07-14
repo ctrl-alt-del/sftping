@@ -16,9 +16,11 @@ resumable, pausable, background transfers.
   `Trusted` / `Unknown` / `Changed` result (MITM warning on change). Trusted keys
   are **persisted** (DataStore) so they survive restarts, and can be **revoked**
   from a trusted-hosts manager or re-verified directly from the change warning.
-- **Remote file browser** with folder navigation, **multi-select** (tap to enter,
-  long-press to select), **search**, **sort** (name A–Z/Z–A, size, last modified),
-  and a **hidden-file toggle**. Returns to your last folder when you switch tabs.
+- **Remote file browser** with folder navigation, **multi-select**, **search**,
+  **sort** (name A–Z/Z–A, size, last modified), and a **hidden-file toggle**.
+  Long-press an item for a context menu: **copy its remote path**, **edit** it (for
+  text-type files, opens in the Editor tab), or **select** for multi-select. Returns
+  to your last folder when you switch tabs.
 - **Upload & download via the Storage Access Framework** — pick multiple documents
   to upload at once (with an in-app confirmation sheet that flags
   already-uploaded files), or select a destination folder for multi-download.
@@ -100,7 +102,7 @@ app/src/main/java/com/example/sftping/
 ├── SftpingApplication.kt      @HiltAndroidApp + WorkManager Configuration.Provider
 ├── ui/
 │   ├── connection/            Connect form + host-key dialog (ViewModel)
-│   ├── files/                 Remote browser, multi-select, SAF upload/download
+│   ├── files/                 Remote browser, long-press actions (copy path / edit / select), SAF upload/download
 │   ├── transfers/             Active/Failed/Completed grouped list, collapsible sections, retry-all, swipe-to-cancel, detail dialog
 │   ├── editor/                Remote text editor: locations list, editor pane, UndoStack (ViewModel)
 │   └── theme/                 Material 3 theme (dynamic color on Android 12+)
@@ -110,12 +112,13 @@ app/src/main/java/com/example/sftping/
 │   └── usecase/               Enqueue/Download/Upload/Pause/Resume/Cancel
 ├── sftp/                      ISftpClient, JschSftpClient, RemoteFile, HostKeyResult, SessionState
 ├── security/                  Fingerprint, KnownHostsStore, TrustedHost, KeystoreCrypto, SecretStore
+├── util/                      Clipboard (interface + AndroidClipboard + InMemoryClipboard)
 ├── data/
 │   ├── connection/            ConnectionProfile + DataStore-backed repository
 │   ├── transfer/              Room entity, DAO, database (sftping.db)
 │   └── editor/                EditorLocation (DataStore) + PendingEdit Room DB (sftping_editor.db)
 ├── work/                      SftpTransferWorker (@HiltWorker, foreground service)
-└── di/                        SftpModule, SecurityModule, DatabaseModule, EditorModule
+└── di/                        SftpModule, SecurityModule, DatabaseModule, EditorModule, ClipboardModule
 ```
 
 ## Build & Run

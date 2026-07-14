@@ -116,7 +116,10 @@ class JschSftpClient @Inject constructor(
                 ch.put(input, path, ChannelSftp.OVERWRITE)
             }
         } catch (e: JschSftpException) {
-            throw SftpException("Failed to write $path", e)
+            throw SftpException(
+                "Failed to write $path", e,
+                permissionDenied = e.id == ChannelSftp.SSH_FX_PERMISSION_DENIED
+            )
         } finally {
             ch.disconnect()
         }

@@ -43,4 +43,9 @@ interface ISftpClient {
     )
 }
 
-class SftpException(message: String, cause: Throwable? = null) : IOException(message, cause)
+class SftpException(
+    message: String,
+    cause: Throwable? = null,
+    /** True when the server rejected the operation with a permission-denied status. */
+    val permissionDenied: Boolean = false
+) : IOException(message, cause)

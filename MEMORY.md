@@ -80,8 +80,10 @@
   `StateFlow<List<TransferItem>>`, wrapped by a thin `@HiltViewModel` for Compose access.
   Scales naturally to Room-backed persistence in 003.
 - `#ui` Multi-select in LazyColumn via `combinedClickable`: tap = enter/action, long-press =
-  toggle selection. Selection state is a `List<String>` of paths in the ViewModel. The app
-  bar switches to a contextual bar when selection is active.
+  **opens a per-row `DropdownMenu` (Copy path / Edit / Select)** when not already in
+  multi-select mode (015). **Select** enters multi-select; once in multi-select, tap and
+  long-press both toggle (no menu). Selection state is a `List<String>` of paths in the
+  ViewModel. The app bar switches to a contextual bar when selection is active.
 - `#api` Room's generated suspend DAO functions (e.g. `dao.updateProgress()`) cannot be
   called from non-suspend callbacks like progress lambdas `(Long, Long) -> Unit`. Wrap
   them in `scope.launch { dao.updateProgress(...) }` to bridge the gap.
@@ -167,6 +169,28 @@
 - `#api` **SFTP text I/O**: `readText` = `ChannelSftp.get(path)` → `readBytes().toString(UTF_8)`;
   `writeText` = `content.byteInputStream(UTF_8)` → `put(stream, path, OVERWRITE)`. Open a fresh
   channel per op over the shared session (same non-thread-safe rule as transfers).
+- `#ui` **Per-row context menu**: wrap a list row in a `Box` and place a `DropdownMenu`
+  as a sibling; open it from `combinedClickable(onLongClick = { if (multiSelect) toggle()
+  else menuExpanded = true })`. Reuses the `EditorScreen.LocationRow` pattern. (015)
+- `#ui` **Clipboard behind an interface**: `Clipboard` interface + `AndroidClipboard`
+  (wraps `ClipboardManager`) + `InMemoryClipboard` double + `@Binds`, mirroring
+  `KnownHostsStore`. Keeps `copyPath` JVM-unit-testable with no `Context`. Note Android
+  13+ shows its own clipboard toast, so keep in-app snackbars terse. (015)
+- `#ui` **Cross-tab open (Files → Editor)**: stash the remote path in
+  `SessionState.pendingEditPath` and emit a `navigateToEditor` `SharedFlow` event that
+  `MainActivity` turns into a `currentDestination` switch; the Editor **consumes-and-clears**
+  the path in a `LaunchedEffect(Unit)` (`consumePendingEdit`) and opens it transiently via
+  `EditorLocation.of(remotePath=…)` (not persisted). (015)
+- ⚡ `#api` **Don't predict SFTP write access from a listing.** SFTP exposes no whoami/uid/
+  supplementary-groups, so any client-side "can I edit this?" check is a heuristic with
+  false negatives (group/ACL access you can't see). Gate the **Edit** action on file
+  *type* only (`EditableFileType` allowlist), never permissions, and surface write
+  failures at save time — like vim / VS Code Remote. Detect a denied write from JSch's
+  status id (`SftpException.id == ChannelSftp.SSH_FX_PERMISSION_DENIED`), not the message
+  string. (015)
+- `#build` **MutableSharedFlow (replay=0) races the test collector.** Emitting before the
+  collector subscribes drops the event. In tests: `launch { flow.collect {...} }`,
+  `advanceUntilIdle()`, *then* trigger the emit, then `advanceUntilIdle()` and assert. (015)
 
 ## 🔧 Patterns That Worked
 <!-- Reusable patterns discovered across features -->
@@ -313,16 +337,22 @@
   and a re-sync trigger without a NavHost or ConnectivityManager. Re-sync fires on the
   `false → true` transition (user reconnecting via the Connect tab), not background network
   callbacks. Editor saves are last-write-wins (no server-side conflict detection). (014)
+- ADR-015: Files long-press opens a per-row context menu (Copy path / Edit / Select)
+  instead of directly toggling multi-select; **Select** now enters multi-select. **Edit**
+  is gated on file *type* (`EditableFileType` allowlist), never permissions (SFTP can't
+  predict write access), and opens the file transiently in the Editor via a
+  `SessionState.pendingEditPath` bridge + `navigateToEditor` event. Permission-denied saves
+  now map to `SaveStatus.Error` (distinct from offline caching). (015)
 
 ## 📂 Code Ownership Map
 
 | File | Touched By | Why |
 |------|-----------|-----|
 | `SftpingApplication.kt` | 001, 004 | @HiltAndroidApp entry point; `Configuration.Provider` for HiltWorkerFactory in 004 |
-| `MainActivity.kt` | 001, 014 | App shell, nav, @AndroidEntryPoint; added Editor tab (014) |
+| `MainActivity.kt` | 001, 014, 015 | App shell, nav, @AndroidEntryPoint; added Editor tab (014); Files→Editor nav callback (015) |
 | `security/Fingerprint.kt`, `KnownHostsStore.kt`, `TrustedHost.kt` | 001, 007 | TOFU; `KnownHostsStore` persisted via DataStore (007); `TrustedHost` JSON model (007) |
 | `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003, 007, 008, 014 | Session in 001; transfer methods in 002; resume in 003; persist keyType (007); `homeDirectory()` (008); per-operation channel (concurrency fix); `readText`/`writeText` + flips `SessionState.connected` (014) |
-| `sftp/SessionState.kt` | 008, 010, 014 | `@Singleton` cross-VM holder: resolved initial directory (008) + connection `epoch` for last-path memory (010) + `connected` StateFlow gate/re-sync trigger (014) |
+| `sftp/SessionState.kt` | 008, 010, 014, 015 | `@Singleton` cross-VM holder: resolved initial directory (008) + connection `epoch` for last-path memory (010) + `connected` StateFlow gate/re-sync trigger (014) + `pendingEditPath` Files→Editor bridge (015) |
 | `security/KeystoreCrypto.kt`, `SecretStore.kt` | 001 | Credential crypto; reusable |
 | `data/connection/ConnectionProfile.kt`, `ConnectionRepository.kt` | 001, 008 | Recent connection persistence; `defaultDirectory` added in 008 |
 | `data/transfer/TransferTask.kt`, `TransferDatabase.kt`, `TransferTaskDao.kt` | 003 | Room transfer-state persistence (`sftping.db`) |
@@ -335,9 +365,11 @@
 | `transfer/usecase/` (Enqueue/Download/Upload/Pause/Resume/Cancel/Retry) | 003, 006, 012 | Transfer business logic (offsets, retries, persistence); `RetryUseCase` for failed uploads (012) |
 | `work/SftpTransferWorker.kt` | 004, 006 | Background FGS worker; delegates to use cases in 006; upload success deletes the real cache file (cleanup fix) |
 | `ui/connection/` | 001, 007, 008, 010 | Connection form + VM; trusted-hosts manager + revoke (007); password show/hide + default-directory field (008); bumps `SessionState.epoch` on connect (010) |
-| `ui/files/` (incl. `FileView.kt`, `UploadCandidate.kt`) | 001, 002, 008, 009, 010, 011 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009); `onEnterScreen` remembers last path across tab switches (010); batch upload sheet + multi-download + uploaded memory (011) |
+| `ui/files/` (incl. `FileView.kt`, `UploadCandidate.kt`, `EditableFileType.kt`) | 001, 002, 008, 009, 010, 011, 015 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009); `onEnterScreen` remembers last path across tab switches (010); batch upload sheet + multi-download + uploaded memory (011); long-press context menu (copy path / edit / select) + `EditableFileType` allowlist (015) |
 | `ui/transfers/` | 002, 004, 012, 013 | Transfers list, progress, pause/resume/cancel, swipe + multi-select; retry failed uploads (012); collapsible sections + retry-all (013) |
-| `ui/editor/` (`EditorScreen.kt`, `EditorViewModel.kt`, `UndoStack.kt`) | 014 | Remote text editor: locations list + editor pane, autosave/offline-cache/reconnect-flush VM, pure UndoStack |
+| `ui/editor/` (`EditorScreen.kt`, `EditorViewModel.kt`, `UndoStack.kt`) | 014, 015 | Remote text editor: locations list + editor pane, autosave/offline-cache/reconnect-flush VM, pure UndoStack; `consumePendingEdit` transient open + permission-denied save-error mapping (015) |
+| `util/Clipboard.kt` | 015 | `Clipboard` interface + `AndroidClipboard` + `InMemoryClipboard` double |
+| `di/ClipboardModule.kt` | 015 | Hilt `@Binds` for `Clipboard` |
 | `app/build.gradle.kts` | 011, 014 | `documentfile` dep (011); `unitTests.isReturnDefaultValues` for Log-in-tests (014) |
 
 ## 🐛 Common Bugs Fixed
@@ -394,6 +426,15 @@
 - **014** `EditorLocationRepository` as a concrete DataStore class wasn't unit-testable
   (needs `Context`). Fix: extract an interface with a DataStore impl + `InMemory*` double
   (KnownHostsStore pattern), bound via `@Binds`.
+- **015** `EditorViewModel.doSave` (from 014) cached **any** save exception as pending-sync,
+  including permission-denied — silently hoarding an edit that can never sync. Fix: the SFTP
+  layer sets a structured `SftpException.permissionDenied` flag from JSch's status id
+  (`ChannelSftp.SSH_FX_PERMISSION_DENIED == 3`); `doSave` maps that to `SaveStatus.Error`
+  (string message scan kept only as a locale-independent fallback), and reserves the
+  offline-cache fallback for connectivity failures.
+- **015** `copyPath` unit test flaked (`expected [Path copied] but was []`) because the
+  `MutableSharedFlow` (replay=0) emitted before the test collector subscribed. Fix:
+  subscribe → `advanceUntilIdle()` → act → `advanceUntilIdle()`.
 
 ## 🧠 AI Workflow Rule
 

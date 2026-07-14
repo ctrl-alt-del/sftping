@@ -253,12 +253,81 @@ class EditorViewModelTest {
         vm.onContentChange("should be ignored")
         assertEquals("", vm.uiState.content)
     }
+
+    @Test
+    fun `consumePendingEdit opens the handed path transiently and clears it`() = runTest {
+        client.files["/etc/app.conf"] = "server-content"
+        session.setConnected(true)
+        session.pendingEditPath = "/etc/app.conf"
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.consumePendingEdit()
+        advanceUntilIdle()
+
+        assertEquals("server-content", vm.uiState.content)
+        assertEquals("/etc/app.conf", vm.uiState.openLocation?.remotePath)
+        assertNull(session.pendingEditPath)
+        assertTrue(vm.uiState.locations.isEmpty())
+    }
+
+    @Test
+    fun `consumePendingEdit with no pending path does nothing`() = runTest {
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.consumePendingEdit()
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.openLocation)
+    }
+
+    @Test
+    fun `permission-denied save surfaces error and does not cache`() = runTest {
+        repo.add(loc)
+        client.files[loc.remotePath] = "old"
+        session.setConnected(true)
+        val vm = vm()
+        advanceUntilIdle()
+        vm.open(loc)
+        advanceUntilIdle()
+        vm.onContentChange("edited")
+        // Structured status flag (JSch id == 3), message intentionally lacks the word
+        // "permission" to prove detection doesn't rely on string matching.
+        client.writeError = SftpException("Failed to write ${loc.remotePath}", permissionDenied = true)
+
+        vm.saveNow()
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.saveStatus is SaveStatus.Error)
+        assertNull(dao.get(loc.remotePath))
+    }
+
+    @Test
+    fun `permission-denied detected via message fallback also surfaces error`() = runTest {
+        repo.add(loc)
+        client.files[loc.remotePath] = "old"
+        session.setConnected(true)
+        val vm = vm()
+        advanceUntilIdle()
+        vm.open(loc)
+        advanceUntilIdle()
+        vm.onContentChange("edited")
+        client.writeError = SftpException("Failed to write ${loc.remotePath}: Permission denied")
+
+        vm.saveNow()
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.saveStatus is SaveStatus.Error)
+        assertNull(dao.get(loc.remotePath))
+    }
 }
 
 private class FakeSftpClient : ISftpClient {
     val files = mutableMapOf<String, String>()
     var readThrows = false
     var writeThrows = false
+    var writeError: SftpException? = null
     var readCount = 0
 
     override suspend fun readText(path: String): String {
@@ -268,6 +337,7 @@ private class FakeSftpClient : ISftpClient {
     }
 
     override suspend fun writeText(path: String, content: String) {
+        writeError?.let { throw it }
         if (writeThrows) throw SftpException("write failed")
         files[path] = content
     }

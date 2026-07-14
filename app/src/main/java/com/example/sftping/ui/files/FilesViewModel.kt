@@ -16,6 +16,7 @@ import com.example.sftping.transfer.TransferDirection
 import com.example.sftping.transfer.TransferItem
 import com.example.sftping.transfer.TransferManager
 import com.example.sftping.transfer.TransferStatus
+import com.example.sftping.util.Clipboard
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -51,7 +52,8 @@ class FilesViewModel @Inject constructor(
     private val sftpClient: ISftpClient,
     private val transferManager: TransferManager,
     @ApplicationContext private val context: Context,
-    private val sessionState: SessionState
+    private val sessionState: SessionState,
+    private val clipboard: Clipboard
 ) : ViewModel() {
 
     var uiState by mutableStateOf(FilesUiState())
@@ -59,6 +61,12 @@ class FilesViewModel @Inject constructor(
 
     private val _navigateToConnection = MutableSharedFlow<Unit>()
     val navigateToConnection: SharedFlow<Unit> = _navigateToConnection
+
+    private val _navigateToEditor = MutableSharedFlow<Unit>()
+    val navigateToEditor: SharedFlow<Unit> = _navigateToEditor
+
+    private val _message = MutableSharedFlow<String>()
+    val message: SharedFlow<String> = _message
 
     private var loadedEpoch: Int = -1
 
@@ -136,6 +144,18 @@ class FilesViewModel @Inject constructor(
 
     fun clearSelection() {
         uiState = uiState.copy(multiSelectMode = false, selectedPaths = emptyList())
+    }
+
+    /** Copy a remote item's full absolute path to the system clipboard. */
+    fun copyPath(file: RemoteFile) {
+        clipboard.copy("Remote path", file.path)
+        viewModelScope.launch { _message.emit("Path copied") }
+    }
+
+    /** Hand a remote file to the Editor tab for a transient open. */
+    fun editFile(file: RemoteFile) {
+        sessionState.pendingEditPath = file.path
+        viewModelScope.launch { _navigateToEditor.emit(Unit) }
     }
 
     fun toggleSelection(path: String) {

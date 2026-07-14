@@ -74,6 +74,17 @@ class EditorViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Open a remote path handed over from the Files tab, if any. Called when the
+     * Editor screen (re)enters. The path is opened transiently — not persisted to
+     * the saved-locations list — and cleared so it isn't reopened.
+     */
+    fun consumePendingEdit() {
+        val path = sessionState.pendingEditPath ?: return
+        sessionState.pendingEditPath = null
+        open(EditorLocation.of(remotePath = path))
+    }
+
     // ---- Locations CRUD ----
 
     fun openAddSheet() { uiState = uiState.copy(showAddSheet = true, editingLocation = null) }
@@ -227,9 +238,32 @@ class EditorViewModel @Inject constructor(
             pendingEditDao.delete(location.remotePath)
             uiState = uiState.copy(saveStatus = SaveStatus.Saved(System.currentTimeMillis()), error = null)
         } catch (e: Exception) {
-            android.util.Log.w("EditorViewModel", "Save failed, caching offline", e)
-            cacheEdit(location, content)
+            if (isPermissionDenied(e)) {
+                // A permission failure won't resolve by retrying later, so surface a
+                // clear error instead of silently hoarding an unsyncable pending edit.
+                android.util.Log.w("EditorViewModel", "Save denied by server", e)
+                val msg = "Permission denied — no write access to this file"
+                uiState = uiState.copy(saveStatus = SaveStatus.Error(msg), error = msg)
+            } else {
+                // Connectivity / transient failure: cache offline for later flush.
+                android.util.Log.w("EditorViewModel", "Save failed, caching offline", e)
+                cacheEdit(location, content)
+            }
         }
+    }
+
+    private fun isPermissionDenied(e: Throwable): Boolean {
+        // Prefer the structured flag from the SFTP layer (JSch status id == 3);
+        // fall back to message scanning for any non-SftpException failure path.
+        val fromStatus = generateSequence(e) { it.cause }
+            .filterIsInstance<SftpException>()
+            .any { it.permissionDenied }
+        if (fromStatus) return true
+        val text = generateSequence(e) { it.cause }
+            .mapNotNull { it.message }
+            .joinToString(" ")
+            .lowercase()
+        return "permission denied" in text || "access denied" in text
     }
 
     private suspend fun cacheEdit(location: EditorLocation, content: String) {
