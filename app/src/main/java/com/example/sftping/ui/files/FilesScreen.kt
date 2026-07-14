@@ -257,7 +257,7 @@ fun FilesScreen(
                                 if (state.multiSelectMode) viewModel.toggleSelection(file.path)
                                 else if (file.isDirectory) viewModel.navigateTo(file.name)
                             },
-                            onLongClick = { viewModel.toggleSelection(file.path) }
+                            onSelect = { viewModel.toggleSelection(file.path) }
                         )
                     }
                 }
@@ -299,35 +299,50 @@ private fun FileRow(
     selected: Boolean,
     multiSelect: Boolean,
     onClick: () -> Unit,
-    onLongClick: () -> Unit
+    onSelect: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = fileTypeIcon(file),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(28.dp)
-        )
-        Spacer(Modifier.width(14.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(file.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontWeight = if (file.isDirectory) FontWeight.Medium else FontWeight.Normal)
-            Text(fileSubtitle(file), style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        if (multiSelect) {
-            Spacer(Modifier.width(8.dp))
-            if (selected) {
-                Icon(Icons.Filled.Check, contentDescription = "Selected",
-                    tint = MaterialTheme.colorScheme.primary)
+    var menuExpanded by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = {
+                        if (multiSelect) onSelect() else menuExpanded = true
+                    }
+                )
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = fileTypeIcon(file),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(file.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontWeight = if (file.isDirectory) FontWeight.Medium else FontWeight.Normal)
+                Text(fileSubtitle(file), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            if (multiSelect) {
+                Spacer(Modifier.width(8.dp))
+                if (selected) {
+                    Icon(Icons.Filled.Check, contentDescription = "Selected",
+                        tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+        DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+            DropdownMenuItem(
+                text = { Text("Select") },
+                leadingIcon = { Icon(Icons.Filled.Check, contentDescription = null) },
+                onClick = { menuExpanded = false; onSelect() }
+            )
         }
     }
 }
