@@ -31,15 +31,22 @@ Package map under `com/example/sftping/`:
 
 - `ui/{connection,files,transfers,editor,theme}` — Compose screens + `@HiltViewModel`s
 - `transfer/` — `TransferManager` (thin state holder) + `strategy/` + `usecase/`
-- `sftp/` — `ISftpClient`/`JschSftpClient` (incl. `readText`/`writeText`), `RemoteFile`, `HostKeyResult`, `SessionState` (incl. `connected` StateFlow)
+- `sftp/` — `ISftpClient`/`JschSftpClient` (incl. `readText`/`writeText`), `RemoteFile`, `HostKeyResult`, `SessionState` (incl. `connected` StateFlow + `pendingEditPath` Files→Editor bridge)
 - `security/` — `Fingerprint`, `KnownHostsStore` (DataStore-backed), `TrustedHost`, `KeystoreCrypto`, `SecretStore`
+- `util/` — `Clipboard` (interface + `AndroidClipboard` + `InMemoryClipboard` double)
 - `data/connection/` (DataStore) + `data/transfer/` (Room) + `data/editor/` (DataStore locations + Room `sftping_editor.db` pending edits)
 - `work/` — `SftpTransferWorker` (`@HiltWorker`)
-- `di/` — `SftpModule`, `SecurityModule`, `DatabaseModule`, `EditorModule`
+- `di/` — `SftpModule`, `SecurityModule`, `DatabaseModule`, `EditorModule`, `ClipboardModule`
+
+> In the Files tab, long-press an item to open a context menu: **Copy path**
+> (to clipboard), **Edit** (text-type files only — opens transiently in the Editor
+> tab), and **Select** (enters multi-select).
 
 > Known gaps: private-key auth UI exists but isn't wired in `JschSftpClient`.
 > The remote editor is text-only, one file at a time, edit-existing-only, and
-> saves last-write-wins (no server-side conflict detection). See `README.md` and `MEMORY.md`.
+> saves last-write-wins (no server-side conflict detection). The **Edit** action is
+> gated on file *type*, not permissions — SFTP can't predict write access, so a
+> denied write surfaces as a save-time error. See `README.md` and `MEMORY.md`.
 
 ## Commands
 
