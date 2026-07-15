@@ -13,6 +13,12 @@
       session is non-null but `isConnected == false` — `sftp/JschSftpClient.kt`
   - Build: `./gradlew assembleDebug`
   - Tests: `./gradlew testDebug`
+- [x] **Task 1.3**: Connect tab connected/disconnected UI state: disable fields when
+      connected, red Disconnect button when connected, green Connect button when
+      disconnected, disconnect() method — `ui/connection/ConnectionViewModel.kt`,
+      `ui/connection/ConnectionScreen.kt`
+  - Build: `./gradlew assembleDebug`
+  - Tests: `./gradlew testDebug`
 
 ## Block 2: Docs
 - [x] **Task 2.1**: takeaways.md; promote to MEMORY.md; update specs/index.md;

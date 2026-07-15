@@ -58,3 +58,14 @@ are correct; they just weren't being triggered because `connected` was stale.
 ## Out of Scope
 - Auto-reconnect on dead session.
 - Proactive session health monitoring (heartbeat).
+
+## Connect Tab UI (connected/disconnected states)
+- [ ] When connected (`connected == true`), all input fields (host, port, username,
+      password, default directory) are disabled/greyed out, the recent connections
+      dropdown is disabled, and the save-credentials switch is disabled.
+- [ ] When connected, the button text is **Disconnect** with a red/error color.
+- [ ] When disconnected (`connected == false`), all fields are editable and the
+      button text is **Connect** with the default green/primary color.
+- [ ] Tapping Disconnect calls `sftpClient.disconnect()`; `connected` flips to
+      `false` in SessionState, which the ViewModel's collector propagates to UI state
+      within the same frame.

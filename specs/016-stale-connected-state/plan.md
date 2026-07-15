@@ -6,6 +6,8 @@ depends_on: ["001", "008", "010", "014"]
 touches:
   - "sftp/JschSftpClient.kt"
   - "sftp/SessionState.kt"
+  - "ui/connection/ConnectionScreen.kt"
+  - "ui/connection/ConnectionViewModel.kt"
 created: "2026-07-15"
 ---
 
@@ -34,6 +36,8 @@ triggered because `connected` was stale.
 | Action | File | Rationale |
 |--------|------|-----------|
 | Change | `sftp/JschSftpClient.kt` | `@Volatile` + dead-session check in `openChannel()` |
+| Change | `ui/connection/ConnectionViewModel.kt` | `connected` StateFlow collection, `disconnect()` method |
+| Change | `ui/connection/ConnectionScreen.kt` | Disable fields when connected, red Disconnect button |
 | Change | `sftp/SessionState.kt` | (no change; documentation only — `connected` is now actually accurate) |
 
 ## Risks
