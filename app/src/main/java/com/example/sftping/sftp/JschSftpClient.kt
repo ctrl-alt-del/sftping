@@ -61,9 +61,14 @@ class JschSftpClient @Inject constructor(
     // corrupt each other's SFTP request/response stream.
     private fun openChannel(): ChannelSftp {
         val s = session ?: throw IllegalStateException("Not connected")
+        if (!s.isConnected) {
+            disconnectInternal()
+            throw IllegalStateException("Not connected")
+        }
         return try {
             (s.openChannel("sftp") as ChannelSftp).apply { connect(10_000) }
         } catch (e: Exception) {
+            if (!s.isConnected) disconnectInternal()
             throw SftpException("Failed to open SFTP channel", e)
         }
     }
