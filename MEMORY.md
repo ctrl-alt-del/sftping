@@ -191,6 +191,11 @@
 - `#build` **MutableSharedFlow (replay=0) races the test collector.** Emitting before the
   collector subscribes drops the event. In tests: `launch { flow.collect {...} }`,
   `advanceUntilIdle()`, *then* trigger the emit, then `advanceUntilIdle()` and assert. (015)
+- ⚡ `#build` **`@Volatile` on `@Singleton` mutable fields accessed from multiple
+  coroutine dispatchers.** Without it, writes on one `Dispatchers.IO` thread may not
+  be visible to reads on another. `JschSftpClient.session` was a plain `var` that
+  caused `openChannel()` to read `null` immediately after `connect()`, manifesting
+  as an instant "connection lost" on tab switch. (016)
 
 ## 🔧 Patterns That Worked
 <!-- Reusable patterns discovered across features -->
@@ -284,6 +289,11 @@
   `saveNow()` job (cancel-and-reschedule on each edit) but ALSO exposes `saveNow()` directly.
   Tests drive `saveNow()` and never time the debounce (dodges the `runTest`-real-time trap).
   `saveNow` routes online→`writeText`+clear-pending, offline/failure→upsert `PendingEdit`. (014)
+- **Dead-session detection at choke points**: when a `StateFlow` flag (like `connected`)
+  is set manually and can get stale, reconcile it against the real source of truth
+  (`channel.isConnected` / JSch `session.isConnected`) at the narrowest possible entry
+  point. For SFTP, `openChannel()` is the single choke point for all 10 operations —
+  one check covers every caller. (016)
 - **Two-mode single screen (no NavHost)**: one `@Composable` switches between a list view and
   a detail/editor pane based on a single `uiState.openLocation`. Keeps the tab-based shell
   NavHost-free while still supporting master→detail navigation. (014)
@@ -351,7 +361,7 @@
 | `SftpingApplication.kt` | 001, 004 | @HiltAndroidApp entry point; `Configuration.Provider` for HiltWorkerFactory in 004 |
 | `MainActivity.kt` | 001, 014, 015 | App shell, nav, @AndroidEntryPoint; added Editor tab (014); Files→Editor nav callback (015) |
 | `security/Fingerprint.kt`, `KnownHostsStore.kt`, `TrustedHost.kt` | 001, 007 | TOFU; `KnownHostsStore` persisted via DataStore (007); `TrustedHost` JSON model (007) |
-| `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003, 007, 008, 014 | Session in 001; transfer methods in 002; resume in 003; persist keyType (007); `homeDirectory()` (008); per-operation channel (concurrency fix); `readText`/`writeText` + flips `SessionState.connected` (014) |
+| `sftp/ISftpClient.kt`, `JschSftpClient.kt` | 001, 002, 003, 007, 008, 014, 015, 016 | Session in 001; transfer methods in 002; resume in 003; persist keyType (007); `homeDirectory()` (008); per-operation channel (concurrency fix); `readText`/`writeText` + flips `SessionState.connected` (014); `permissionDenied` flag (015); `@Volatile` session + dead-session detection (016) |
 | `sftp/SessionState.kt` | 008, 010, 014, 015 | `@Singleton` cross-VM holder: resolved initial directory (008) + connection `epoch` for last-path memory (010) + `connected` StateFlow gate/re-sync trigger (014) + `pendingEditPath` Files→Editor bridge (015) |
 | `security/KeystoreCrypto.kt`, `SecretStore.kt` | 001 | Credential crypto; reusable |
 | `data/connection/ConnectionProfile.kt`, `ConnectionRepository.kt` | 001, 008 | Recent connection persistence; `defaultDirectory` added in 008 |
@@ -435,6 +445,16 @@
 - **015** `copyPath` unit test flaked (`expected [Path copied] but was []`) because the
   `MutableSharedFlow` (replay=0) emitted before the test collector subscribed. Fix:
   subscribe → `advanceUntilIdle()` → act → `advanceUntilIdle()`.
+- ⚡ **016** The SFTP connection appeared to drop "instantly" when switching tabs
+  (Files tab showed "Not connected" immediately after connecting on the Connect tab).
+  Root cause: `JschSftpClient.session` was a plain `var` without `@Volatile` — writes
+  on one `Dispatchers.IO` thread were invisible to reads on another, so
+  `openChannel()` read `null` right after `connect()` set it. Fix: add `@Volatile`.
+- ⚡ **016** Editor saves always fell through to offline cache (`PendingSync`) because
+  the `connected` StateFlow stayed `true` long after the JSch session had silently died
+  (network change, server timeout, Doze). Fix: `openChannel()` now checks
+  `session.isConnected` and calls `disconnectInternal()` to sync the flag when the
+  session is dead. One change covers all 10 SFTP operations.
 
 ## 🧠 AI Workflow Rule
 
