@@ -21,6 +21,7 @@ class JschSftpClient @Inject constructor(
     private val sessionState: SessionState
 ) : ISftpClient {
 
+    @Volatile
     private var session: com.jcraft.jsch.Session? = null
 
     override suspend fun connect(
