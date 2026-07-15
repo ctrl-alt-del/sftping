@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -284,5 +285,36 @@ class ConnectionViewModelTest {
         advanceUntilIdle()
 
         assertEquals(before + 1, sessionState.epoch)
+    }
+
+    @Test
+    fun `connected tracks sessionState connected StateFlow`() = runTest {
+        doReturn(emptyList<ConnectionProfile>()).`when`(repo).loadRecent()
+        doReturn(emptyList<TrustedHost>()).`when`(knownHostsStore).all()
+
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
+        advanceUntilIdle()
+
+        assertFalse(vm.uiState.connected)
+
+        sessionState.setConnected(true)
+        assertTrue(vm.uiState.connected)
+
+        sessionState.setConnected(false)
+        assertFalse(vm.uiState.connected)
+    }
+
+    @Test
+    fun `disconnect delegates to sftpClient`() = runTest {
+        doReturn(emptyList<ConnectionProfile>()).`when`(repo).loadRecent()
+        doReturn(emptyList<TrustedHost>()).`when`(knownHostsStore).all()
+
+        val vm = ConnectionViewModel(client, repo, secretStore, knownHostsStore, sessionState)
+        advanceUntilIdle()
+
+        vm.disconnect()
+        advanceUntilIdle()
+
+        verify(client).disconnect()
     }
 }

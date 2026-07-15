@@ -82,6 +82,9 @@ fun ConnectionScreen(
         state.error?.let { snackbarHostState.showSnackbar(it) }
     }
 
+    val isConnected = state.connected
+    val inputEnabled = !isConnected && !state.connecting
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -102,7 +105,7 @@ fun ConnectionScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
-            RecentSection(state.recentConnections, viewModel::selectRecent)
+            RecentSection(state.recentConnections, viewModel::selectRecent, inputEnabled)
             Spacer(Modifier.height(16.dp))
 
             OutlinedTextField(
@@ -110,6 +113,7 @@ fun ConnectionScreen(
                 onValueChange = viewModel::updateHost,
                 label = { Text("Host") },
                 singleLine = true,
+                enabled = inputEnabled,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(10.dp))
@@ -120,6 +124,7 @@ fun ConnectionScreen(
                     label = { Text("Port") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    enabled = inputEnabled,
                     modifier = Modifier.width(100.dp)
                 )
                 Spacer(Modifier.width(12.dp))
@@ -128,6 +133,7 @@ fun ConnectionScreen(
                     onValueChange = viewModel::updateUsername,
                     label = { Text("Username") },
                     singleLine = true,
+                    enabled = inputEnabled,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -137,6 +143,7 @@ fun ConnectionScreen(
                 onValueChange = viewModel::updatePassword,
                 label = { Text(if (state.useKeyAuth) "Private key path" else "Password") },
                 singleLine = true,
+                enabled = inputEnabled,
                 visualTransformation = if (state.useKeyAuth || passwordVisible) VisualTransformation.None
                     else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -161,6 +168,7 @@ fun ConnectionScreen(
                 label = { Text("Default directory (optional)") },
                 placeholder = { Text("Defaults to home directory") },
                 singleLine = true,
+                enabled = inputEnabled,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(14.dp))
@@ -179,25 +187,39 @@ fun ConnectionScreen(
                 Spacer(Modifier.weight(1f))
                 Switch(
                     checked = state.saveCredentials,
-                    onCheckedChange = { viewModel.toggleSaveCredentials() }
+                    onCheckedChange = { viewModel.toggleSaveCredentials() },
+                    enabled = inputEnabled
                 )
             }
             Spacer(Modifier.height(20.dp))
 
-            FilledTonalButton(
-                onClick = { viewModel.connect() },
-                enabled = !state.connecting && state.host.isNotBlank(),
-                modifier = Modifier.fillMaxWidth().height(50.dp)
-            ) {
-                if (state.connecting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(Icons.Filled.Cloud, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Connect")
+            if (isConnected) {
+                Button(
+                    onClick = { viewModel.disconnect() },
+                    enabled = !state.connecting,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                ) {
+                    Text("Disconnect")
+                }
+            } else {
+                FilledTonalButton(
+                    onClick = { viewModel.connect() },
+                    enabled = !state.connecting && state.host.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                ) {
+                    if (state.connecting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Filled.Cloud, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Connect")
+                    }
                 }
             }
         }
@@ -222,13 +244,15 @@ fun ConnectionScreen(
 @Composable
 private fun RecentSection(
     recents: List<ConnectionProfile>,
-    onSelect: (ConnectionProfile) -> Unit
+    onSelect: (ConnectionProfile) -> Unit,
+    enabled: Boolean = true
 ) {
     if (recents.isEmpty()) return
     var expanded by remember { mutableStateOf(false) }
     Box {
         FilledTonalButton(
             onClick = { expanded = true },
+            enabled = enabled,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Recent connections")
