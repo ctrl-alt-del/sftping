@@ -1,5 +1,7 @@
 # sftping
 
+[![CI](https://github.com/ctrl-alt-del/sftping/actions/workflows/ci.yml/badge.svg)](https://github.com/ctrl-alt-del/sftping/actions/workflows/ci.yml)
+
 An Android **SFTP client** built with **Kotlin + Jetpack Compose**. Connect to a
 remote host, browse its filesystem, and move files in either direction with
 resumable, pausable, background transfers.
@@ -132,6 +134,17 @@ Prerequisites: Android SDK with **platform 37** installed, and **JDK 11+**.
 # Install on a connected device/emulator
 ./gradlew installDebug
 ```
+
+## CI (GitHub Actions)
+
+Every push to `master` and every PR triggers a CI run (`.github/workflows/ci.yml`):
+`lint` → `assembleDebug` → `testDebug` on `ubuntu-latest` with JDK 21.
+
+Android SDK platform 37 is cached (~150 MB) via `actions/cache@v4` so subsequent
+runs skip the download. The platform is hosted in the `ci-assets` branch while
+Google's public SDK repository does not yet include API 37. When it does, the
+download can be replaced with a single `sdkmanager` call.
+project has no UI tests yet). See `AGENTS.md` for details on adding them.
 
 ## Testing
 
