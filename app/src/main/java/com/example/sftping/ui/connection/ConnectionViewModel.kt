@@ -28,6 +28,7 @@ data class ConnectionUiState(
     val useKeyAuth: Boolean = false,
     val saveCredentials: Boolean = true,
     val connecting: Boolean = false,
+    val connected: Boolean = false,
     val error: String? = null,
     val hostKeyResult: HostKeyResult? = null,
     val recentConnections: List<ConnectionProfile> = emptyList(),
@@ -56,6 +57,11 @@ class ConnectionViewModel @Inject constructor(
             loadRecent()
             loadTrustedHosts()
         }
+        viewModelScope.launch {
+            sessionState.connected.collect { connected ->
+                uiState = uiState.copy(connected = connected)
+            }
+        }
     }
 
     fun updateHost(v: String) { uiState = uiState.copy(host = v, error = null) }
@@ -69,6 +75,10 @@ class ConnectionViewModel @Inject constructor(
 
     fun connect() {
         viewModelScope.launch { doConnect() }
+    }
+
+    fun disconnect() {
+        viewModelScope.launch { sftpClient.disconnect() }
     }
 
     private suspend fun doConnect() {

@@ -1,5 +1,5 @@
 ---
-last_updated: "2026-07-14"
+last_updated: "2026-07-15"
 ---
 
 # Feature Index
@@ -21,6 +21,7 @@ last_updated: "2026-07-14"
 | 013 | Grouped Transfers — Collapsible Sections & Batch Retry | ✅ Done | `transfer/TransferManager.kt`, `ui/transfers/` | 012 |
 | 014 | Remote File Editor | ✅ Done | `MainActivity.kt`, `sftp/`, `data/editor/`, `di/EditorModule.kt`, `ui/editor/`, `AGENTS.md`, `README.md` | 001 |
 | 015 | Files Item Actions (Long-Press Menu) | ✅ Done | `ui/files/`, `ui/editor/`, `sftp/SessionState.kt`, `util/`, `di/ClipboardModule.kt`, `MainActivity.kt` | 009, 014 |
+| 016 | Session Health & Stale Connected State | ✅ Done | `sftp/JschSftpClient.kt` | 001, 008, 010, 014 |
 
 Status: 📋 Planned → 🚧 In Progress → ✅ Done → 📦 Archived
 

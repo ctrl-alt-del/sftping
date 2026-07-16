@@ -31,7 +31,7 @@ Package map under `com/example/sftping/`:
 
 - `ui/{connection,files,transfers,editor,theme}` — Compose screens + `@HiltViewModel`s
 - `transfer/` — `TransferManager` (thin state holder) + `strategy/` + `usecase/`
-- `sftp/` — `ISftpClient`/`JschSftpClient` (incl. `readText`/`writeText`), `RemoteFile`, `HostKeyResult`, `SessionState` (incl. `connected` StateFlow + `pendingEditPath` Files→Editor bridge)
+- `sftp/` — `ISftpClient`/`JschSftpClient` (incl. `readText`/`writeText`, `@Volatile session`, dead-session detection in `openChannel()`), `RemoteFile`, `HostKeyResult`, `SessionState` (incl. `connected` StateFlow + `pendingEditPath` Files→Editor bridge)
 - `security/` — `Fingerprint`, `KnownHostsStore` (DataStore-backed), `TrustedHost`, `KeystoreCrypto`, `SecretStore`
 - `util/` — `Clipboard` (interface + `AndroidClipboard` + `InMemoryClipboard` double)
 - `data/connection/` (DataStore) + `data/transfer/` (Room) + `data/editor/` (DataStore locations + Room `sftping_editor.db` pending edits)
