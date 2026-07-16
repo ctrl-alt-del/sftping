@@ -84,7 +84,9 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          cache-read-only: ${{ github.event_name == 'pull_request' }}
+          # Read-only on fork PRs (cache poisoning prevention).
+          # Same-repo PRs can write — the committer already has push access.
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
 
       # ------------------------------------------------------------------
       # Build steps: lint, assemble, unit tests.
