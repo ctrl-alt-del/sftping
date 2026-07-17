@@ -46,8 +46,10 @@ jobs:
         uses: actions/cache@v4
         id: android-sdk-cache
         with:
-          path: ${{ env.ANDROID_SDK_ROOT }}/platforms
-          key: android-sdk-37-${{ runner.os }}-v3
+          # Cache only the downloaded platform (~164 MB), not every installed
+          # platform (the runner's pre-installed 34/35 add ~600 MB).
+          path: ${{ env.ANDROID_SDK_ROOT }}/platforms/android-37.0
+          key: android-sdk-37-${{ runner.os }}-v4
 
       - name: Install Android platform 37
         if: steps.android-sdk-cache.outputs.cache-hit != 'true'
@@ -66,8 +68,12 @@ jobs:
           rm /tmp/platform-37.tar.gz
           echo "::endgroup::"
 
+      - name: Symlink android-37 for AGP
+        run: |
           # AGP expects android-37 (no .0 suffix). The archive contains
           # android-37.0; symlink so both names resolve.
+          # This runs on every build (not just cache miss) because the cache
+          # only stores android-37.0, not the symlink.
           if [ -d "$ANDROID_SDK_ROOT/platforms/android-37.0" ] && [ ! -d "$ANDROID_SDK_ROOT/platforms/android-37" ]; then
             ln -s "$ANDROID_SDK_ROOT/platforms/android-37.0" "$ANDROID_SDK_ROOT/platforms/android-37"
           fi
