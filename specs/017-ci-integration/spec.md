@@ -13,9 +13,10 @@ No UI change. CI status badges in `README.md` and on PRs.
 - [ ] Every pull request targeting `master` triggers a CI run.
 - [ ] CI runs on `ubuntu-latest` with JDK 21 (Temurin), Gradle 9.4.1 via wrapper,
       Android compileSdk 37.
-- [ ] SDK platform 37 is cached via `actions/cache@v4` so subsequent runs skip the
-      Google CDN download (~150 MB cache, keyed `android-sdk-37-linux-v1`).
-      Build-tools are fetched automatically by AGP 9.x — no version-pinning needed.
+- [ ] SDK platform 37 is cached via `actions/cache@v4` so subsequent runs skip
+      the download (~164 MB cache, keyed `android-sdk-37-linux-v4`). The platform
+      is hosted in the `ci-assets` branch while Google's public SDK repository
+      does not yet include API 37.
 - [ ] Cache is read-only on PRs (PRs can read but not write the cache — prevents
       cache poisoning).
 - [ ] Concurrent pushes cancel in-progress runs (`cancel-in-progress: true`).

@@ -199,8 +199,10 @@
 - `#build` **CI (GitHub Actions) caches Android platform 37** because GitHub
   runners don't pre-install it and Google hasn't published it in the public SDK
   repository yet. A compressed copy (~60 MB) is hosted in the `ci-assets` branch
-  and downloaded on cache miss. Once `platforms;android-37` is available via
-  `sdkmanager`, replace the download step with a single `sdkmanager` call. (017)
+  and downloaded on cache miss; the uncompressed platform (~164 MB) is cached
+  via `actions/cache@v4` keyed `android-sdk-37-linux-v4`. Once
+  `platforms;android-37` is available via `sdkmanager`, replace the download
+  step with a single `sdkmanager` call. (017)
 
 ## 🔧 Patterns That Worked
 <!-- Reusable patterns discovered across features -->

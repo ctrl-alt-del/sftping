@@ -140,10 +140,10 @@ Prerequisites: Android SDK with **platform 37** installed, and **JDK 11+**.
 Every push to `master` and every PR triggers a CI run (`.github/workflows/ci.yml`):
 `lint` → `assembleDebug` → `testDebug` on `ubuntu-latest` with JDK 21.
 
-Android SDK platform 37 is cached (~150 MB) via `actions/cache@v4` so subsequent
-runs skip the download. The platform is hosted in the `ci-assets` branch while
-Google's public SDK repository does not yet include API 37. When it does, the
-download can be replaced with a single `sdkmanager` call.
+Android SDK platform 37 is cached (~164 MB uncompressed) via `actions/cache@v4`
+so subsequent runs skip the download. The platform is hosted in the `ci-assets`
+branch while Google's public SDK repository does not yet include API 37. When
+it does, the download can be replaced with a single `sdkmanager` call.
 project has no UI tests yet). See `AGENTS.md` for details on adding them.
 
 ## Testing
