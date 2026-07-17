@@ -196,6 +196,13 @@
   be visible to reads on another. `JschSftpClient.session` was a plain `var` that
   caused `openChannel()` to read `null` immediately after `connect()`, manifesting
   as an instant "connection lost" on tab switch. (016)
+- `#build` **CI (GitHub Actions) caches Android platform 37** because GitHub
+  runners don't pre-install it and Google hasn't published it in the public SDK
+  repository yet. A compressed copy (~60 MB) is hosted in the `ci-assets` branch
+  and downloaded on cache miss; the uncompressed platform (~164 MB) is cached
+  via `actions/cache@v4` keyed `android-sdk-37-linux-v4`. Once
+  `platforms;android-37` is available via `sdkmanager`, replace the download
+  step with a single `sdkmanager` call. (017)
 
 ## 🔧 Patterns That Worked
 <!-- Reusable patterns discovered across features -->
@@ -380,6 +387,7 @@
 | `ui/editor/` (`EditorScreen.kt`, `EditorViewModel.kt`, `UndoStack.kt`) | 014, 015 | Remote text editor: locations list + editor pane, autosave/offline-cache/reconnect-flush VM, pure UndoStack; `consumePendingEdit` transient open + permission-denied save-error mapping (015) |
 | `util/Clipboard.kt` | 015 | `Clipboard` interface + `AndroidClipboard` + `InMemoryClipboard` double |
 | `di/ClipboardModule.kt` | 015 | Hilt `@Binds` for `Clipboard` |
+| `.github/workflows/ci.yml` | 017 | CI: lint, assembleDebug, testDebug on push/PR; SDK caching |
 | `app/build.gradle.kts` | 011, 014 | `documentfile` dep (011); `unitTests.isReturnDefaultValues` for Log-in-tests (014) |
 
 ## 🐛 Common Bugs Fixed

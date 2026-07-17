@@ -55,6 +55,28 @@ Package map under `com/example/sftping/`:
 - Instrumented/UI tests (device/emulator): `./gradlew connectedDebugAndroidTest`
 - Lint: `./gradlew lint`
 
+## CI (GitHub Actions)
+
+CI runs on every push to `master` and every PR targeting `master`.
+Workflow: `.github/workflows/ci.yml`.
+
+- **Runner:** `ubuntu-latest` with JDK 21 (Temurin), Gradle 9.4.1 (wrapper).
+- **SDK:** Android platform 37, downloaded on first run from the `ci-assets`
+  branch (~60 MB compressed, ~164 MB cached uncompressed). GitHub runners do
+  not yet pre-install platforms ≥ 35, and Google has not published API 37 in
+  the public SDK repository yet. Once available via `sdkmanager`, the download
+  step can be replaced with `sdkmanager "platforms;android-37"`.
+- **Steps:** `lint` → `assembleDebug` → `testDebug`. Lint runs first for faster
+  failure feedback.
+- **No instrumented tests** — not included because `app/src/androidTest/` has
+  no tests. To add them, create a separate job with an emulator (using
+  `reactivecircus/android-emulator-runner@v2`).
+- **Caching:** Gradle caches via `gradle/actions/setup-gradle@v4`. Same-repo PRs
+  can write to the cache; fork PRs are read-only (cache poisoning prevention).
+  The SDK platform cache uses `actions/cache@v4` keyed `android-sdk-37-linux-v4`.
+- **When GitHub pre-installs API 37:** the SDK download step (and `ci-assets`
+  branch) can be removed without breaking the workflow.
+
 ## Conventions
 
 - Add/bump dependencies in `gradle/libs.versions.toml`, not inline in

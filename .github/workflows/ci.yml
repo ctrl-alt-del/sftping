@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # Use the runner's pre-installed SDK. cmdline-tools, platforms 34-35,
+      # and build-tools are already present. We add platform 37 on top.
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # ------------------------------------------------------------------
+      # SDK caching strategy:
+      #   - Platform 37 is NOT yet in Google's public SDK repository.
+      #     sdkmanager cannot install it — it was deployed by Android Studio's
+      #     preview channel only.
+      #   - We host a compressed copy in the ci-assets branch of this repo
+      #     (~60 MB). CI downloads it on cache miss and extracts it into the
+      #     runner's pre-installed SDK.
+      #   - Once Google publishes platforms;android-37, this step can be
+      #     replaced with a single sdkmanager call.
+      #   - Cost: free for public repos (CI minutes + cache storage).
+      # ------------------------------------------------------------------
+
+      - name: Cache Android SDK platform 37
+        uses: actions/cache@v4
+        id: android-sdk-cache
+        with:
+          # Cache only the downloaded platform (~164 MB), not every installed
+          # platform (the runner's pre-installed 34/35 add ~600 MB).
+          path: ${{ env.ANDROID_SDK_ROOT }}/platforms/android-37.0
+          key: android-sdk-37-${{ runner.os }}-v4
+
+      - name: Install Android platform 37
+        if: steps.android-sdk-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "::group::Downloading Android platform 37 (~60 MB)"
+          wget -q --show-progress \
+            "https://raw.githubusercontent.com/ctrl-alt-del/sftping/ci-assets/android-platform-37.tar.gz" \
+            -O /tmp/platform-37.tar.gz
+          echo "::endgroup::"
+
+          echo "::group::Extracting platform"
+          mkdir -p "$ANDROID_SDK_ROOT/platforms"
+          # tar may warn about utime/chmod on some skins; extraction succeeds
+          # regardless, so ignore non-zero exit.
+          tar -xzf /tmp/platform-37.tar.gz -C "$ANDROID_SDK_ROOT/platforms" || true
+          rm /tmp/platform-37.tar.gz
+          echo "::endgroup::"
+
+      - name: Symlink android-37 for AGP
+        run: |
+          # AGP expects android-37 (no .0 suffix). The archive contains
+          # android-37.0; symlink so both names resolve.
+          # This runs on every build (not just cache miss) because the cache
+          # only stores android-37.0, not the symlink.
+          if [ -d "$ANDROID_SDK_ROOT/platforms/android-37.0" ] && [ ! -d "$ANDROID_SDK_ROOT/platforms/android-37" ]; then
+            ln -s "$ANDROID_SDK_ROOT/platforms/android-37.0" "$ANDROID_SDK_ROOT/platforms/android-37"
+          fi
+
+      # ------------------------------------------------------------------
+      # Gradle caching:
+      #   - Handles Gradle wrapper, dependency jars, and build outputs.
+      #   - Read-only on PRs (PR cannot update the cache, only read it).
+      #   - `gradle/actions/setup-gradle@v4` replaces the older
+      #     `gradle/gradle-build-action` and is maintained by the Gradle
+      #     team.
+      # ------------------------------------------------------------------
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          # Read-only on fork PRs (cache poisoning prevention).
+          # Same-repo PRs can write — the committer already has push access.
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+
+      # ------------------------------------------------------------------
+      # Build steps: lint, assemble, unit tests.
+      #   - Lint runs first (faster to fail early).
+      #   - Unit tests run on the JVM — no emulator needed.
+      #   - Instrumented tests (connectedDebugAndroidTest) are NOT included
+      #     because the project currently has no instrumented tests.
+      # ------------------------------------------------------------------
+
+      - name: Lint
+        run: ./gradlew lint
+
+      - name: Assemble debug
+        run: ./gradlew assembleDebug
+
+      - name: Unit tests
+        run: ./gradlew testDebug
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            app/build/reports/tests/
+            app/build/reports/lint-results*.html
+          retention-days: 7

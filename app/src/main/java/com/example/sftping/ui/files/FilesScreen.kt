@@ -20,6 +20,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -159,7 +162,7 @@ fun FilesScreen(
                         title = { Text(state.currentPath, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         navigationIcon = {
                             IconButton(onClick = viewModel::navigateBack, enabled = viewModel.canGoBack()) {
-                                Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
                         },
                         actions = {
@@ -171,7 +174,7 @@ fun FilesScreen(
                             }
                             Box {
                                 IconButton(onClick = { sortMenuExpanded = true }) {
-                                    Icon(Icons.Filled.Sort, contentDescription = "Sort and filter")
+                                    Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort and filter")
                                 }
                                 SortFilterMenu(
                                     expanded = sortMenuExpanded,
@@ -373,7 +376,7 @@ private fun fileTypeIcon(file: RemoteFile): ImageVector = when {
     file.name.endsWith(".jpg") || file.name.endsWith(".png") || file.name.endsWith(".gif") -> Icons.Filled.Image
     file.name.endsWith(".tar.gz") || file.name.endsWith(".zip") || file.name.endsWith(".7z") -> Icons.Filled.SwapVert
     file.name.endsWith(".sh") || file.name.endsWith(".json") || file.name.endsWith(".xml") -> Icons.Filled.Description
-    else -> Icons.Filled.InsertDriveFile
+    else -> Icons.AutoMirrored.Filled.InsertDriveFile
 }
 
 private val dateFormat = SimpleDateFormat("MMM dd HH:mm", Locale.getDefault())

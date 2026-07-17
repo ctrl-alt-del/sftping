@@ -1,5 +1,5 @@
 ---
-last_updated: "2026-07-15"
+last_updated: "2026-07-16"
 ---
 
 # Feature Index
@@ -22,6 +22,7 @@ last_updated: "2026-07-15"
 | 014 | Remote File Editor | ✅ Done | `MainActivity.kt`, `sftp/`, `data/editor/`, `di/EditorModule.kt`, `ui/editor/`, `AGENTS.md`, `README.md` | 001 |
 | 015 | Files Item Actions (Long-Press Menu) | ✅ Done | `ui/files/`, `ui/editor/`, `sftp/SessionState.kt`, `util/`, `di/ClipboardModule.kt`, `MainActivity.kt` | 009, 014 |
 | 016 | Session Health & Stale Connected State | ✅ Done | `sftp/JschSftpClient.kt` | 001, 008, 010, 014 |
+| 017 | CI Integration (GitHub Actions) | ✅ Done | `.github/workflows/ci.yml`, `AGENTS.md`, `README.md`, `MEMORY.md` | — |
 
 Status: 📋 Planned → 🚧 In Progress → ✅ Done → 📦 Archived
 
