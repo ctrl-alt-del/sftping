@@ -29,7 +29,7 @@ Transfers use a layered, protocol-agnostic pipeline:
 
 Package map under `com/example/sftping/`:
 
-- `ui/{connection,files,transfers,editor,theme}` — Compose screens + `@HiltViewModel`s
+- `ui/{connection,files,transfers,editor,theme,components}` — Compose screens + `@HiltViewModel`s + shared components
 - `transfer/` — `TransferManager` (thin state holder) + `strategy/` + `usecase/`
 - `sftp/` — `ISftpClient`/`JschSftpClient` (incl. `readText`/`writeText`, `@Volatile session`, dead-session detection in `openChannel()`), `RemoteFile`, `HostKeyResult`, `SessionState` (incl. `connected` StateFlow + `pendingEditPath` Files→Editor bridge)
 - `security/` — `Fingerprint`, `KnownHostsStore` (DataStore-backed), `TrustedHost`, `KeystoreCrypto`, `SecretStore`
@@ -41,6 +41,10 @@ Package map under `com/example/sftping/`:
 > In the Files tab, long-press an item to open a context menu: **Copy path**
 > (to clipboard), **Edit** (text-type files only — opens transiently in the Editor
 > tab), and **Select** (enters multi-select).
+>
+> A thin green/red `ConnectionIndicator` bar sits above the TopAppBar on Files,
+> Transfers, and Editor tabs. Green when connected, red when disconnected.
+> Reacts to `SessionState.connected` via ViewModel `collect` — no polling. (018)
 
 > Known gaps: private-key auth UI exists but isn't wired in `JschSftpClient`.
 > The remote editor is text-only, one file at a time, edit-existing-only, and

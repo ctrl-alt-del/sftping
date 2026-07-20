@@ -181,6 +181,11 @@
   `MainActivity` turns into a `currentDestination` switch; the Editor **consumes-and-clears**
   the path in a `LaunchedEffect(Unit)` (`consumePendingEdit`) and opens it transiently via
   `EditorLocation.of(remotePath=…)` (not persisted). (015)
+- `#ui` **Connection indicator across tabs:** `SessionState.connected` is
+  collected by each ViewModel (Files, Transfers, Editor) and mapped to a thin
+  green/red bar above the TopAppBar via the shared `ConnectionIndicator`
+  composable in `ui/components/`. `AnimatedVisibility` smooths transitions.
+  No polling — StateFlow push model. (018)
 - ⚡ `#api` **Don't predict SFTP write access from a listing.** SFTP exposes no whoami/uid/
   supplementary-groups, so any client-side "can I edit this?" check is a heuristic with
   false negatives (group/ACL access you can't see). Gate the **Edit** action on file
@@ -382,9 +387,10 @@
 | `transfer/usecase/` (Enqueue/Download/Upload/Pause/Resume/Cancel/Retry) | 003, 006, 012 | Transfer business logic (offsets, retries, persistence); `RetryUseCase` for failed uploads (012) |
 | `work/SftpTransferWorker.kt` | 004, 006 | Background FGS worker; delegates to use cases in 006; upload success deletes the real cache file (cleanup fix) |
 | `ui/connection/` | 001, 007, 008, 010, 016 | Connection form + VM; trusted-hosts manager + revoke (007); password show/hide + default-directory field (008); bumps `SessionState.epoch` on connect (010); `connected` StateFlow observer + disconnect button (016) |
-| `ui/files/` (incl. `FileView.kt`, `UploadCandidate.kt`, `EditableFileType.kt`) | 001, 002, 008, 009, 010, 011, 015 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009); `onEnterScreen` remembers last path across tab switches (010); batch upload sheet + multi-download + uploaded memory (011); long-press context menu (copy path / edit / select) + `EditableFileType` allowlist (015) |
-| `ui/transfers/` | 002, 004, 012, 013 | Transfers list, progress, pause/resume/cancel, swipe + multi-select; retry failed uploads (012); collapsible sections + retry-all (013) |
-| `ui/editor/` (`EditorScreen.kt`, `EditorViewModel.kt`, `UndoStack.kt`) | 014, 015 | Remote text editor: locations list + editor pane, autosave/offline-cache/reconnect-flush VM, pure UndoStack; `consumePendingEdit` transient open + permission-denied save-error mapping (015) |
+| `ui/files/` (incl. `FileView.kt`, `UploadCandidate.kt`, `EditableFileType.kt`) | 001, 002, 008, 009, 010, 011, 015, 018 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009); `onEnterScreen` remembers last path across tab switches (010); batch upload sheet + multi-download + uploaded memory (011); long-press context menu (copy path / edit / select) + `EditableFileType` allowlist (015); connection indicator (018) |
+| `ui/transfers/` | 002, 004, 012, 013, 018 | Transfers list, progress, pause/resume/cancel, swipe + multi-select; retry failed uploads (012); collapsible sections + retry-all (013); connection indicator + SessionState injection (018) |
+| `ui/editor/` (`EditorScreen.kt`, `EditorViewModel.kt`, `UndoStack.kt`) | 014, 015, 018 | Remote text editor: locations list + editor pane, autosave/offline-cache/reconnect-flush VM, pure UndoStack; `consumePendingEdit` transient open + permission-denied save-error mapping (015); connection indicator (018) |
+| `ui/components/ConnectionIndicator.kt` | 018 | Shared connection status bar (green/red dot) |
 | `util/Clipboard.kt` | 015 | `Clipboard` interface + `AndroidClipboard` + `InMemoryClipboard` double |
 | `di/ClipboardModule.kt` | 015 | Hilt `@Binds` for `Clipboard` |
 | `.github/workflows/ci.yml` | 017 | CI: lint, assembleDebug, testDebug on push/PR; SDK caching |

@@ -315,6 +315,21 @@ class FilesViewModelTest {
         job.cancel()
     }
 
+    @Test
+    fun `connected reflects sessionState connected StateFlow`() = runTest {
+        doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
+        val vm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
+        advanceUntilIdle()
+
+        assertFalse(vm.uiState.connected)
+
+        sessionState.setConnected(true)
+        assertTrue(vm.uiState.connected)
+
+        sessionState.setConnected(false)
+        assertFalse(vm.uiState.connected)
+    }
+
     private fun assertNull(value: Any?) {
         org.junit.Assert.assertNull(value)
     }

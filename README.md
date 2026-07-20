@@ -40,6 +40,9 @@ resumable, pausable, background transfers.
   with **autosave**, **undo/redo**, and a manual **save**. Edits made while
   offline are **cached locally** (Room, `sftping_editor.db`) and **re-synced** to
   the server on reconnect; the editor greys out when not connected.
+- **Connection status indicator** — a thin green/red bar above the TopAppBar on
+  Files, Transfers, and Editor tabs shows at a glance whether you're connected
+  to the SFTP server.
 - **Encrypted credentials at rest.** Passwords are sealed with an
   **Android Keystore** AES-256-GCM key and stored as ciphertext in DataStore,
   separate from the (non-secret) connection profile.
