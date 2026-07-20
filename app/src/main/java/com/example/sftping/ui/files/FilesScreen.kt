@@ -78,6 +78,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.sftping.sftp.RemoteFile
+import com.example.sftping.ui.components.ConnectionIndicator
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -121,7 +122,9 @@ fun FilesScreen(
 
     Scaffold(
         topBar = {
-            if (state.multiSelectMode) {
+            Column {
+                ConnectionIndicator(isConnected = state.connected)
+                if (state.multiSelectMode) {
                 val selectedFiles = state.files.filter { it.path in state.selectedPaths && !it.isDirectory }
                 val selectedFileCount = selectedFiles.size
                 TopAppBar(
@@ -212,6 +215,7 @@ fun FilesScreen(
                         )
                     }
                 }
+            }
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
