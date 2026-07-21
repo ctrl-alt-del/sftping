@@ -75,6 +75,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.sftping.transfer.TransferDirection
 import com.example.sftping.transfer.TransferItem
 import com.example.sftping.transfer.TransferStatus
+import com.example.sftping.ui.components.ConnectionIndicator
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -85,6 +86,7 @@ private val dateTimeFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getD
 @Composable
 fun TransfersScreen(viewModel: TransfersViewModel = viewModel()) {
     val items by viewModel.items.collectAsState()
+    val connected by viewModel.connected.collectAsState()
     val active = items.filter { it.status in listOf(TransferStatus.RUNNING, TransferStatus.PAUSED) }
     val failed = items.filter { it.status == TransferStatus.FAILED }
     val completed = items.filter { it.status == TransferStatus.COMPLETED }
@@ -95,15 +97,24 @@ fun TransfersScreen(viewModel: TransfersViewModel = viewModel()) {
     val selectMode = selectedIds.isNotEmpty()
 
     if (items.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    Icons.Outlined.Inbox, contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(12.dp))
-                Text("No transfers yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Scaffold(
+            topBar = {
+                Column {
+                    ConnectionIndicator(isConnected = connected)
+                    TopAppBar(title = { Text("Transfers") })
+                }
+            }
+        ) { padding ->
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Outlined.Inbox, contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text("No transfers yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
         return
@@ -111,6 +122,8 @@ fun TransfersScreen(viewModel: TransfersViewModel = viewModel()) {
 
     Scaffold(
         topBar = {
+            Column {
+                ConnectionIndicator(isConnected = connected)
             if (selectMode) {
                 TopAppBar(
                     title = { Text("${selectedIds.size} selected") },
@@ -142,6 +155,7 @@ fun TransfersScreen(viewModel: TransfersViewModel = viewModel()) {
                         }
                     }
                 )
+            }
             }
         }
     ) { padding ->
@@ -311,9 +325,9 @@ private fun SectionHeader(
                     .size(20.dp)
                     .rotate(rotation),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                )
+            }
         }
-    }
     HorizontalDivider()
     Spacer(Modifier.height(4.dp))
 }

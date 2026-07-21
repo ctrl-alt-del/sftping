@@ -44,7 +44,8 @@ data class FilesUiState(
     val sortMode: SortMode = SortMode.NAME_ASC,
     val searchQuery: String = "",
     val uploadCandidates: List<UploadCandidate> = emptyList(),
-    val showUploadSheet: Boolean = false
+    val showUploadSheet: Boolean = false,
+    val connected: Boolean = false
 )
 
 @HiltViewModel
@@ -69,6 +70,14 @@ class FilesViewModel @Inject constructor(
     val message: SharedFlow<String> = _message
 
     private var loadedEpoch: Int = -1
+
+    init {
+        viewModelScope.launch {
+            sessionState.connected.collect { connected ->
+                uiState = uiState.copy(connected = connected)
+            }
+        }
+    }
 
     fun onEnterScreen() {
         if (sessionState.epoch != loadedEpoch) {

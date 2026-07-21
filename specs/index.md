@@ -1,5 +1,5 @@
 ---
-last_updated: "2026-07-16"
+last_updated: "2026-07-17"
 ---
 
 # Feature Index
@@ -23,6 +23,7 @@ last_updated: "2026-07-16"
 | 015 | Files Item Actions (Long-Press Menu) | ✅ Done | `ui/files/`, `ui/editor/`, `sftp/SessionState.kt`, `util/`, `di/ClipboardModule.kt`, `MainActivity.kt` | 009, 014 |
 | 016 | Session Health & Stale Connected State | ✅ Done | `sftp/JschSftpClient.kt` | 001, 008, 010, 014 |
 | 017 | CI Integration (GitHub Actions) | ✅ Done | `.github/workflows/ci.yml`, `AGENTS.md`, `README.md`, `MEMORY.md` | — |
+| 018 | Connection Status Indicator | ✅ Done | `ui/components/`, `ui/files/`, `ui/transfers/`, `ui/editor/` | 001, 008, 016 |
 
 Status: 📋 Planned → 🚧 In Progress → ✅ Done → 📦 Archived
 

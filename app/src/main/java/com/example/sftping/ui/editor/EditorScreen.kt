@@ -57,6 +57,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.sftping.data.editor.EditorLocation
+import com.example.sftping.ui.components.ConnectionIndicator
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -85,6 +86,7 @@ fun EditorScreen(viewModel: EditorViewModel = viewModel()) {
         LocationsList(
             locations = state.locations,
             pendingPaths = state.pendingPaths,
+            connected = state.connected,
             onOpen = viewModel::open,
             onAdd = viewModel::openAddSheet,
             onEdit = viewModel::startEditLocation,
@@ -107,6 +109,7 @@ fun EditorScreen(viewModel: EditorViewModel = viewModel()) {
 private fun LocationsList(
     locations: List<EditorLocation>,
     pendingPaths: Set<String>,
+    connected: Boolean,
     onOpen: (EditorLocation) -> Unit,
     onAdd: () -> Unit,
     onEdit: (EditorLocation) -> Unit,
@@ -114,7 +117,9 @@ private fun LocationsList(
 ) {
     Scaffold(
         topBar = {
-            TopAppBar(title = {
+            Column {
+                ConnectionIndicator(isConnected = connected)
+                TopAppBar(title = {
                 Column {
                     Text("Editor")
                     Text(
@@ -124,6 +129,7 @@ private fun LocationsList(
                     )
                 }
             })
+            }
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
@@ -249,6 +255,8 @@ private fun EditorPane(
     val loc = state.openLocation ?: return
     Scaffold(
         topBar = {
+            Column {
+                ConnectionIndicator(isConnected = state.connected)
             TopAppBar(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -279,6 +287,7 @@ private fun EditorPane(
                     }
                 }
             )
+            }
         },
         bottomBar = { StatusBar(state) }
     ) { padding ->
