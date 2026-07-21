@@ -94,9 +94,13 @@ Workflow: `.github/workflows/ci.yml`.
 
 When the user describes a new feature (creates, builds, adds, wants a new screen,
 etc.), follow the spec-driven development workflow in `specs/SDD.md`. Read
-`MEMORY.md` before writing any spec to avoid repeating known bugs. The workflow:
+`MEMORY.md` before writing any spec to avoid repeating known bugs. Check
+`constitution.md` for governing principles. The workflow:
 1. Generate mockups if needed (`canvas-design` + `theme-factory`)
-2. Co-author spec + plan (`doc-coauthoring`)
-3. Write test plan and tasks
-4. Implement one commit per task
-5. Write takeaways → promote to `MEMORY.md`
+2. Co-author spec + plan (`doc-coauthoring`); resolve all `[NEEDS CLARIFICATION]` markers
+3. Run requirements quality checklist
+4. Write test plan and tasks
+5. Run cross-artifact analysis (spec ↔ plan ↔ tasks)
+6. Implement one commit per task
+7. Run convergence check (assess codebase against spec/plan/tasks)
+8. Write takeaways → promote to `MEMORY.md`
