@@ -30,6 +30,12 @@
 - **v1's `editable` requiring `loaded` was over-strict** — any failed load locked
   the field even while connected. The 014 offline-cache design already supports
   editing without a live connection; the gate contradicted it.
+- **First-VM-creation ordering is still a real hole even with a StateFlow
+  bridge.** The replay covers "VM created after the path is set" in principle,
+  but on-device the first Edit tap (VM created mid-flow) still missed it; the
+  second tap (VM exists, push) worked. A screen-entry fallback consume
+  (`consumePendingEditIfAny`, idempotent via consume-and-clear) closes it: the
+  path is opened exactly once no matter which mechanism fires first.
 
 ## Reusable patterns
 - Cross-ViewModel handoffs in a no-NavHost tab app: a `StateFlow` on the shared

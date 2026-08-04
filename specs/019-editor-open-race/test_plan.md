@@ -23,6 +23,10 @@
       delivers the push → opens + clears.
 - [x] **No pending edit path leaves editor on the locations list**: no path →
       `openLocation == null`.
+- [x] **Collect and entry consume open a handed path exactly once**: set the path
+      (collect opens+clears), then call `consumePendingEditIfAny()` — no
+      double-open (`readCount == 1`), path stays cleared. Verifies the two
+      mechanisms are idempotent.
 
 #### v3 — flag-independent open + session health
 - [x] **Open with dead session while disconnected is read-only NotConnected**:

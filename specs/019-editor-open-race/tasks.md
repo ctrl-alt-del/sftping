@@ -36,6 +36,13 @@
 - [x] **Task 3.3**: tests — dead-session open (read-only NotConnected), reconnect
       reload after dead-session open — `EditorViewModelTest.kt`
 
-## Block 4: Docs
-- [x] **Task 4.1**: takeaways.md → promote to MEMORY.md; update `specs/index.md`
+## Block 4: v4 — first-tap fallback
+- [x] **Task 4.1**: `consumePendingEditIfAny()` (entry-consume, idempotent via
+      consume-and-clear) + `LaunchedEffect(Unit)` in `EditorScreen` alongside the
+      init collect — `ui/editor/EditorViewModel.kt`, `ui/editor/EditorScreen.kt`
+- [x] **Task 4.2**: test — handed path is opened exactly once by collect + entry
+      consume — `EditorViewModelTest.kt`
+
+## Block 5: Docs
+- [x] **Task 5.1**: takeaways.md → promote to MEMORY.md; update `specs/index.md`
       (019 row), `AGENTS.md`/`README.md`; plan.md status → ✅ Done

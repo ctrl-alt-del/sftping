@@ -352,6 +352,24 @@ class EditorViewModelTest {
     }
 
     @Test
+    fun `collect and entry consume open a handed path exactly once`() = runTest {
+        client.files["/etc/app.conf"] = "server-content"
+        session.setConnected(true)
+        val vm = vm()
+        advanceUntilIdle()
+
+        session.setPendingEdit("/etc/app.conf")
+        advanceUntilIdle()
+        vm.consumePendingEditIfAny()
+        advanceUntilIdle()
+
+        assertEquals("/etc/app.conf", vm.uiState.openLocation?.remotePath)
+        assertEquals("server-content", vm.uiState.content)
+        assertNull(session.pendingEditPath.value)
+        assertEquals(1, client.readCount)
+    }
+
+    @Test
     fun `permission-denied save surfaces error and does not cache`() = runTest {
         repo.add(loc)
         client.files[loc.remotePath] = "old"

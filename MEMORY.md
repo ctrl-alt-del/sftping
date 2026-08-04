@@ -179,12 +179,15 @@
 - `#ui` **Cross-tab open (Files → Editor)**: a `StateFlow<String?>` on
   `SessionState` (`pendingEditPath` + `setPendingEdit`/`clearPendingEdit`) bridged
   into an `EditorViewModel` init collect that opens-and-clears on any non-null
-  emission; `FilesViewModel.editFile` sets it and emits a `navigateToEditor`
-  SharedFlow event that `MainActivity` turns into a `currentDestination` switch.
-  The StateFlow replay/push covers both "VM created before/after the path was set"
-  — no `LaunchedEffect`/screen re-entry timing (the original 015 design, a plain
-  var + `LaunchedEffect(Unit)` consume, was order-dependent and failed on-device;
-  fixed in 019 v2). (015, 019)
+  emission, PLUS a screen-entry fallback (`consumePendingEditIfAny()` from
+  `LaunchedEffect(Unit)` in `EditorScreen`); `FilesViewModel.editFile` sets it and
+  emits a `navigateToEditor` SharedFlow event that `MainActivity` turns into a
+  `currentDestination` switch. Consume-and-clear makes the two mechanisms
+  idempotent (opened exactly once). The StateFlow replay/push covers
+  "VM created before/after the path was set" but the first tap (VM created
+  mid-flow) still missed on-device — the entry fallback closes that hole (019
+  v2/v4; the original 015 design, a plain var + `LaunchedEffect` consume, was
+  order-dependent and failed on-device). (015, 019)
 - `#ui` **Connection indicator across tabs:** `SessionState.connected` is
   collected by each ViewModel (Files, Transfers, Editor) and mapped to a thin
   green/red bar above the TopAppBar via the shared `ConnectionIndicator`

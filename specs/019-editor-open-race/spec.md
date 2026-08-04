@@ -71,6 +71,16 @@ remain and are complementary.
    `open(EditorLocation.of(path))`. The EditorVM opens the file the moment the
    path is set — no screen re-entry, no frame timing.
 
+### v4 — first-tap fallback
+Device round 4: the reactive bridge opens on the **second** Edit tap but the
+**first** tap still showed the locations list — the VM is created mid-flow on the
+first tap and its init collect did not reliably process the replayed value.
+Fix: keep the collect **and** restore a screen-entry consume
+(`consumePendingEditIfAny()` from `LaunchedEffect(Unit)` in `EditorScreen`) as a
+fallback. Consume-and-clear makes the two mechanisms idempotent — the handed
+path is opened exactly once regardless of which fires first or whether the
+collect's replay was processed.
+
 ## Fix (v3 — session health + flag independence)
 
 1. **`sftp/JschSftpClient.kt`**: keepalive 30 s → 10 s, `setServerAliveCountMax(3)`;
@@ -80,9 +90,10 @@ remain and are complementary.
 
 ## Acceptance Criteria
 - [ ] Fresh connect → Files → long-press → Edit opens the file with content and an
-      editable field on the first attempt, every time, even after a pause.
-- [ ] The open works whether the EditorViewModel already exists or is created
-      after the path is set (StateFlow replay + push).
+      editable field on the **first** tap, every time — and on retries.
+- [ ] The open works whether the EditorViewModel already exists (collect push) or
+      is created at the first tab switch (collect replay or entry-consume
+      fallback) — the handed path is opened exactly once.
 - [ ] A file that opened and loaded stays editable through brief connection
       hiccups; genuinely dead sessions show `NotConnected` and reload on reconnect
       (v1 self-heal).

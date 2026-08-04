@@ -91,6 +91,19 @@ class EditorViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Fallback consume for a handed path, called when the Editor screen enters
+     * composition. Complements the reactive init collect: if the collect has not
+     * processed the emission yet (first-time VM creation ordering), the screen
+     * entry picks it up. Consume-and-clear keeps it idempotent with the collect,
+     * so the path is opened at most once.
+     */
+    fun consumePendingEditIfAny() {
+        val path = sessionState.pendingEditPath.value ?: return
+        sessionState.clearPendingEdit()
+        open(EditorLocation.of(remotePath = path))
+    }
+
     // ---- Locations CRUD ----
 
     fun openAddSheet() { uiState = uiState.copy(showAddSheet = true, editingLocation = null) }
