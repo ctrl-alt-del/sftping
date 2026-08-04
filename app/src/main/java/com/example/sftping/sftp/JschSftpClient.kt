@@ -34,7 +34,11 @@ class JschSftpClient @Inject constructor(
             setConfig("StrictHostKeyChecking", "no") // TOFU verification happens post-connect in app layer via KnownHostsStore
             setConfig("PreferredAuthentications", "password,keyboard-interactive")
             setConfig("sftp_buffer_size", "1048576")
-            setServerAliveInterval(30_000)
+            // Short keepalive: mobile NATs/proxies drop idle TCP within ~30s; a
+            // 10s heartbeat (with 3 missed before giving up) keeps the session
+            // alive through long browsing pauses.
+            setServerAliveInterval(10_000)
+            setServerAliveCountMax(3)
             connect(10_000)
         }
         sessionState.setConnected(true)
@@ -62,6 +66,7 @@ class JschSftpClient @Inject constructor(
     private fun openChannel(): ChannelSftp {
         val s = session ?: throw IllegalStateException("Not connected")
         if (!s.isConnected) {
+            android.util.Log.w("JschSftpClient", "SFTP session dead (isConnected=false); flipping connected state")
             disconnectInternal()
             throw IllegalStateException("Not connected")
         }

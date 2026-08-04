@@ -116,8 +116,9 @@ class EditorViewModelTest {
     }
 
     @Test
-    fun `open while disconnected is read-only and does not read remote`() = runTest {
+    fun `open with dead session while disconnected is read-only NotConnected`() = runTest {
         repo.add(loc)
+        client.readThrowsIllegalState = true
         val vm = vm()
         advanceUntilIdle()
 
@@ -125,7 +126,6 @@ class EditorViewModelTest {
         advanceUntilIdle()
 
         assertFalse(vm.uiState.editable)
-        assertEquals(0, client.readCount)
         assertTrue(vm.uiState.saveStatus is SaveStatus.NotConnected)
     }
 
@@ -133,6 +133,7 @@ class EditorViewModelTest {
     fun `reconnect reloads a file that opened while disconnected`() = runTest {
         repo.add(loc)
         client.files[loc.remotePath] = "remote-content"
+        client.readThrowsIllegalState = true
         val vm = vm()
         advanceUntilIdle()
         vm.open(loc)
@@ -140,6 +141,7 @@ class EditorViewModelTest {
         assertFalse(vm.uiState.editable)
         assertTrue(vm.uiState.saveStatus is SaveStatus.NotConnected)
 
+        client.readThrowsIllegalState = false
         session.setConnected(true)
         advanceUntilIdle()
 

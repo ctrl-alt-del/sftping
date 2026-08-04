@@ -37,3 +37,6 @@ google-services.json
 # Self-evolving memory — raw observations may contain residual PII
 memory/raw/
 memory/.backup/
+
+# Kotlin Gradle plugin build artifacts
+/.kotlin

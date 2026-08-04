@@ -52,8 +52,9 @@ Package map under `com/example/sftping/`:
 > gated on file *type*, not permissions — SFTP can't predict write access, so a
 > denied write surfaces as a save-time error. The Files→Editor handoff is a
 > `pendingEditPath` **StateFlow** bridged into the EditorViewModel's init collect
-> (015, hardened reactively in 019); a file opened while disconnected stays
-> read-only until a reconnect reloads it (019). See `README.md` and `MEMORY.md`.
+> (015, reactive in 019); a file that failed to load (dead session) shows
+> `NotConnected` and reloads on reconnect (019). The client keeps sessions alive
+> with a 10 s keepalive. See `README.md` and `MEMORY.md`.
 
 ## Commands
 

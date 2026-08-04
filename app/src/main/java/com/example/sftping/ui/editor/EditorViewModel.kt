@@ -42,8 +42,12 @@ data class EditorUiState(
     val showAddSheet: Boolean = false,
     val editingLocation: EditorLocation? = null
 ) {
-    /** Editing is only allowed when a file is open with content loaded and the session is connected. */
-    val editable: Boolean get() = openLocation != null && connected && loaded
+    /**
+     * Editing is allowed once a file is open with content loaded. Not gated on
+     * the `connected` flag: a loaded file stays editable offline (edits are
+     * cached for sync), and the flag can be stale relative to the real session.
+     */
+    val editable: Boolean get() = openLocation != null && loaded
 }
 
 @HiltViewModel
@@ -148,15 +152,13 @@ class EditorViewModel @Inject constructor(
                         loading = false, saveStatus = SaveStatus.PendingSync, loaded = true
                     )
                 }
-                // Read the authoritative StateFlow value, not the UI mirror, so the
-                // decision can't race the connected-collector's delivery.
-                !sessionState.connected.value -> {
-                    setLoadedContent("")
-                    uiState = uiState.copy(
-                        loading = false, saveStatus = SaveStatus.NotConnected, loaded = false
-                    )
-                }
                 else -> {
+                    // Attempt the read unconditionally: the outcome is the truth.
+                    // A dead/null session surfaces as IllegalStateException ->
+                    // NotConnected; a genuine read failure as SftpException ->
+                    // Error. Never gate on the connected flag, which can disagree
+                    // with the real session (stale false keeps the editor locked;
+                    // stale true crashes without the catches below).
                     try {
                         val text = sftpClient.readText(location.remotePath)
                         setLoadedContent(text)
@@ -172,8 +174,8 @@ class EditorViewModel @Inject constructor(
                             loaded = false
                         )
                     } catch (e: IllegalStateException) {
-                        // Dead session between the connected check and the read:
-                        // not connected, no crash. Recovery happens on reconnect.
+                        // Dead session: not connected, no crash. Recovery happens
+                        // on reconnect (onConnectedChanged self-heal).
                         setLoadedContent("")
                         uiState = uiState.copy(
                             loading = false, saveStatus = SaveStatus.NotConnected, loaded = false

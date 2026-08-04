@@ -10,32 +10,53 @@ Confirmed on-device (019 fix included): the Edit menu does auto-navigate to the
 Editor tab (so `editFile` runs and the path is set), and a plain retry **without**
 disconnecting still fails — only a disconnect+reconnect recovers.
 
-## Root Cause (revised — v2)
+## Root Cause (revised — v2/v3)
 
-The transient-open **handoff** is fire-and-forget and order-dependent:
+### v2 — the handoff (file never opened)
+The transient-open **handoff** was fire-and-forget and order-dependent:
 
-1. `FilesViewModel.editFile()` writes the path to a plain `@Volatile var
-   SessionState.pendingEditPath` and emits a `navigateToEditor` SharedFlow event.
-2. `EditorScreen` consumes the path via `LaunchedEffect(Unit) {
-   viewModel.consumePendingEdit() }` — i.e., the open only happens if the
-   Editor screen (re)enters composition *after* the path was written and reads
-   the var at exactly the right time.
-3. On-device, `consumePendingEdit()` does not open the file (the consume runs
-   without seeing the path — a composition-frame timing race between the
-   LaunchedEffect dispatch and the write/consume). `openLocation` stays `null`,
-   so the Editor shows the locations list. Because the LaunchedEffect consume
-   and the plain var have no ordering guarantee, the failure persists across
-   plain retries; only a disconnect+reconnect (which forces a fresh Editor
-   re-entry at a different point) happens to succeed.
+1. `FilesViewModel.editFile()` wrote the path to a plain `@Volatile var
+   SessionState.pendingEditPath` and emitted a `navigateToEditor` SharedFlow event.
+2. `EditorScreen` consumed the path via `LaunchedEffect(Unit) {
+   viewModel.consumePendingEdit() }` — the open only happened if the Editor screen
+   (re)entered composition at the right moment.
+3. On-device the file never opened (Editor showed the locations list) and plain
+   retries failed until a disconnect+reconnect forced a fresh re-entry.
 
-The v1 fix (019) hardened `EditorViewModel.open()` — authoritative
-`sessionState.connected.value` gate, `IllegalStateException` catch, `loaded`
-flag, reconnect self-heal — but did not touch the handoff, so the symptom
-persisted. That hardening is correct and stays.
+Fixed by making the bridge reactive: `pendingEditPath` is a `StateFlow<String?>`
+collected in the `EditorViewModel` init — the open fires on the emission itself
+(replay covers "VM created after the path was set", push covers "VM exists"), no
+composition timing involved.
+
+### v3 — the locked editor (file opens but not editable)
+After the reactive bridge, the file **opens** but the field stays read-only. The
+editor's `editable` gate and `open()` decision both depended on
+`SessionState.connected` — a manual flag that can disagree with the real session:
+
+- The JSch session can **silently die** during browsing (mobile NAT/proxy idle
+  drops; keepalive was 30 s — too slow). The next SFTP operation (the editor's
+  read) hits 016's dead-session detection, flips `connected=false`, and the open
+  lands in `NotConnected` → field locked. Reconnect is the only escape.
+- `editable` additionally required `loaded` (v1), so **any** failed load (even a
+  transient read error while connected) locked the field.
+
+Fixed by:
+1. **Keepalive tuning** — `setServerAliveInterval(10_000)` +
+   `setServerAliveCountMax(3)` in `connect()` keeps mobile NATs from dropping the
+   idle session and detects dead ones faster.
+2. **Trust the operation, not the flag** — `open()` no longer gates on
+   `connected`; it always attempts `readText` and maps the outcome
+   (`IllegalStateException` → NotConnected, `SftpException` → Error). A stale
+   `connected` can no longer lock the editor (stale-false) or crash it
+   (stale-true).
+3. **`editable = openLocation != null && loaded`** — a file with content loaded is
+   editable even while `connected` is stale-false (edits are cached for sync, the
+   014 offline flow); a failed load stays locked with its status visible.
+
+The v1 fixes (reconnect self-heal, `IllegalStateException` catch, `loaded` flag)
+remain and are complementary.
 
 ## Fix (v2 — reactive bridge)
-
-Make the handoff reactive and composition-independent:
 
 1. **`sftp/SessionState.kt`**: `pendingEditPath` becomes a
    `MutableStateFlow<String?>` (private) exposed as `StateFlow` with
@@ -50,18 +71,25 @@ Make the handoff reactive and composition-independent:
    `open(EditorLocation.of(path))`. The EditorVM opens the file the moment the
    path is set — no screen re-entry, no frame timing.
 
+## Fix (v3 — session health + flag independence)
+
+1. **`sftp/JschSftpClient.kt`**: keepalive 30 s → 10 s, `setServerAliveCountMax(3)`;
+   log the dead-session detection.
+2. **`ui/editor/EditorViewModel.kt`**: `open()` attempts the read unconditionally
+   (outcome = truth); `editable = openLocation != null && loaded`.
+
 ## Acceptance Criteria
-- [ ] Fresh connect → Files → long-press → Edit opens the file with content and
-      an editable field on the first attempt, every time.
-- [ ] A plain retry (Files → Edit again, no disconnect) opens the file.
+- [ ] Fresh connect → Files → long-press → Edit opens the file with content and an
+      editable field on the first attempt, every time, even after a pause.
 - [ ] The open works whether the EditorViewModel already exists or is created
       after the path is set (StateFlow replay + push).
-- [ ] No disconnect/reconnect ritual needed.
-- [ ] Existing editor behaviors (offline read-only open, cache-first open,
-      pending-edit flush, permission-denied save, v1 self-heal) are unchanged.
+- [ ] A file that opened and loaded stays editable through brief connection
+      hiccups; genuinely dead sessions show `NotConnected` and reload on reconnect
+      (v1 self-heal).
+- [ ] Existing editor behaviors (offline-cache saves, cache-first open,
+      permission-denied save) are unchanged.
 
 ## Out of Scope
-- Changing `JschSftpClient.openChannel()`'s exception type — the Editor now
-  handles both `SftpException` and `IllegalStateException`.
-- `navigateToEditor` SharedFlow hardening (replay=1) — with the reactive bridge,
-  a dropped nav event is self-healing (the file opens in the VM regardless).
+- Auto-reconnect on dead session (deferred in 016).
+- Changing `JschSftpClient.openChannel()`'s exception type.
+- `navigateToEditor` SharedFlow hardening (replay=1).

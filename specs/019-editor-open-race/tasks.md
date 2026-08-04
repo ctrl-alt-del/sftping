@@ -27,6 +27,15 @@
       creation, full FilesVM→EditorVM handoff; update StateFlow API usages —
       `EditorViewModelTest.kt`, `FilesViewModelTest.kt`
 
-## Block 3: Docs
-- [x] **Task 3.1**: takeaways.md → promote to MEMORY.md; update `specs/index.md`
+## Block 3: v3 — session health + flag independence
+- [x] **Task 3.1**: keepalive 30 s → 10 s + `setServerAliveCountMax(3)`; log the
+      dead-session detection — `sftp/JschSftpClient.kt`
+- [x] **Task 3.2**: `open()` attempts the read unconditionally (outcome = truth;
+      `IllegalStateException` → NotConnected, `SftpException` → Error);
+      `editable = openLocation != null && loaded` — `ui/editor/EditorViewModel.kt`
+- [x] **Task 3.3**: tests — dead-session open (read-only NotConnected), reconnect
+      reload after dead-session open — `EditorViewModelTest.kt`
+
+## Block 4: Docs
+- [x] **Task 4.1**: takeaways.md → promote to MEMORY.md; update `specs/index.md`
       (019 row), `AGENTS.md`/`README.md`; plan.md status → ✅ Done
