@@ -116,8 +116,9 @@ class EditorViewModelTest {
     }
 
     @Test
-    fun `open while disconnected is read-only and does not read remote`() = runTest {
+    fun `open with dead session while disconnected is read-only NotConnected`() = runTest {
         repo.add(loc)
+        client.readThrowsIllegalState = true
         val vm = vm()
         advanceUntilIdle()
 
@@ -125,8 +126,66 @@ class EditorViewModelTest {
         advanceUntilIdle()
 
         assertFalse(vm.uiState.editable)
-        assertEquals(0, client.readCount)
         assertTrue(vm.uiState.saveStatus is SaveStatus.NotConnected)
+    }
+
+    @Test
+    fun `reconnect reloads a file that opened while disconnected`() = runTest {
+        repo.add(loc)
+        client.files[loc.remotePath] = "remote-content"
+        client.readThrowsIllegalState = true
+        val vm = vm()
+        advanceUntilIdle()
+        vm.open(loc)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.editable)
+        assertTrue(vm.uiState.saveStatus is SaveStatus.NotConnected)
+
+        client.readThrowsIllegalState = false
+        session.setConnected(true)
+        advanceUntilIdle()
+
+        assertEquals("remote-content", vm.uiState.content)
+        assertTrue(vm.uiState.editable)
+        assertTrue(vm.uiState.saveStatus is SaveStatus.Idle)
+    }
+
+    @Test
+    fun `reconnect keeps in-memory edits of an already loaded file`() = runTest {
+        repo.add(loc)
+        client.files[loc.remotePath] = "old"
+        session.setConnected(true)
+        val vm = vm()
+        advanceUntilIdle()
+        vm.open(loc)
+        advanceUntilIdle()
+        vm.onContentChange("edited")
+        advanceUntilIdle()
+
+        session.setConnected(false)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.saveStatus is SaveStatus.NotConnected)
+
+        session.setConnected(true)
+        advanceUntilIdle()
+
+        assertEquals("edited", vm.uiState.content)
+        assertTrue(vm.uiState.editable)
+    }
+
+    @Test
+    fun `open with dead session maps to NotConnected instead of crashing`() = runTest {
+        repo.add(loc)
+        client.readThrowsIllegalState = true
+        session.setConnected(true)
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.open(loc)
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.saveStatus is SaveStatus.NotConnected)
+        assertFalse(vm.uiState.editable)
     }
 
     @Test
@@ -255,31 +314,59 @@ class EditorViewModelTest {
     }
 
     @Test
-    fun `consumePendingEdit opens the handed path transiently and clears it`() = runTest {
+    fun `handed edit path set before VM creation opens transiently and clears it`() = runTest {
         client.files["/etc/app.conf"] = "server-content"
         session.setConnected(true)
-        session.pendingEditPath = "/etc/app.conf"
+        session.setPendingEdit("/etc/app.conf")
         val vm = vm()
-        advanceUntilIdle()
-
-        vm.consumePendingEdit()
         advanceUntilIdle()
 
         assertEquals("server-content", vm.uiState.content)
         assertEquals("/etc/app.conf", vm.uiState.openLocation?.remotePath)
-        assertNull(session.pendingEditPath)
+        assertNull(session.pendingEditPath.value)
         assertTrue(vm.uiState.locations.isEmpty())
     }
 
     @Test
-    fun `consumePendingEdit with no pending path does nothing`() = runTest {
+    fun `handed edit path set after VM creation opens transiently and clears it`() = runTest {
+        client.files["/etc/app.conf"] = "server-content"
+        session.setConnected(true)
+        val vm = vm()
+        advanceUntilIdle()
+        assertNull(vm.uiState.openLocation)
+
+        session.setPendingEdit("/etc/app.conf")
+        advanceUntilIdle()
+
+        assertEquals("server-content", vm.uiState.content)
+        assertEquals("/etc/app.conf", vm.uiState.openLocation?.remotePath)
+        assertNull(session.pendingEditPath.value)
+    }
+
+    @Test
+    fun `no pending edit path leaves editor on the locations list`() = runTest {
         val vm = vm()
         advanceUntilIdle()
 
-        vm.consumePendingEdit()
+        assertNull(vm.uiState.openLocation)
+    }
+
+    @Test
+    fun `collect and entry consume open a handed path exactly once`() = runTest {
+        client.files["/etc/app.conf"] = "server-content"
+        session.setConnected(true)
+        val vm = vm()
         advanceUntilIdle()
 
-        assertNull(vm.uiState.openLocation)
+        session.setPendingEdit("/etc/app.conf")
+        advanceUntilIdle()
+        vm.consumePendingEditIfAny()
+        advanceUntilIdle()
+
+        assertEquals("/etc/app.conf", vm.uiState.openLocation?.remotePath)
+        assertEquals("server-content", vm.uiState.content)
+        assertNull(session.pendingEditPath.value)
+        assertEquals(1, client.readCount)
     }
 
     @Test
@@ -327,11 +414,13 @@ private class FakeSftpClient : ISftpClient {
     val files = mutableMapOf<String, String>()
     var readThrows = false
     var writeThrows = false
+    var readThrowsIllegalState = false
     var writeError: SftpException? = null
     var readCount = 0
 
     override suspend fun readText(path: String): String {
         readCount++
+        if (readThrowsIllegalState) throw IllegalStateException("Not connected")
         if (readThrows) throw SftpException("read failed")
         return files[path] ?: throw SftpException("no such file")
     }

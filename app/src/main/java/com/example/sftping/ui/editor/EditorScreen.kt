@@ -69,7 +69,10 @@ private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 fun EditorScreen(viewModel: EditorViewModel = viewModel()) {
     val state = viewModel.uiState
 
-    LaunchedEffect(Unit) { viewModel.consumePendingEdit() }
+    // Fallback consume for a path handed over from the Files tab; the reactive
+    // init collect usually handles it first, this covers first-time VM creation
+    // ordering. Idempotent via consume-and-clear.
+    LaunchedEffect(Unit) { viewModel.consumePendingEditIfAny() }
 
     if (state.showAddSheet) {
         LocationDialog(

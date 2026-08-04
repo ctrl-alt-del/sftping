@@ -15,10 +15,25 @@ class SessionState @Inject constructor() {
     @Volatile
     var epoch: Int = 0
 
-    // Remote path handed from the Files tab to the Editor tab for a transient open.
-    // Consumed (set back to null) by the Editor once opened.
-    @Volatile
-    var pendingEditPath: String? = null
+    private val _pendingEditPath = MutableStateFlow<String?>(null)
+
+    /**
+     * Remote path handed from the Files tab to the Editor tab for a transient
+     * open. A StateFlow so the Editor can react to the emission directly instead
+     * of relying on screen re-entry timing; the Editor consumes it (sets back to
+     * null) once opened.
+     */
+    val pendingEditPath: StateFlow<String?> = _pendingEditPath.asStateFlow()
+
+    fun setPendingEdit(path: String) {
+        android.util.Log.i("EditHandoff", "setPendingEdit($path)")
+        _pendingEditPath.value = path
+    }
+
+    fun clearPendingEdit() {
+        android.util.Log.i("EditHandoff", "clearPendingEdit()")
+        _pendingEditPath.value = null
+    }
 
     private val _connected = MutableStateFlow(false)
 

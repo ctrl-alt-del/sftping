@@ -163,7 +163,8 @@ class FilesViewModel @Inject constructor(
 
     /** Hand a remote file to the Editor tab for a transient open. */
     fun editFile(file: RemoteFile) {
-        sessionState.pendingEditPath = file.path
+        android.util.Log.i("EditHandoff", "editFile(${file.path}) -> setPendingEdit")
+        sessionState.setPendingEdit(file.path)
         viewModelScope.launch { _navigateToEditor.emit(Unit) }
     }
 

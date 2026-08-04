@@ -34,6 +34,7 @@ data class EditorUiState(
     val content: String = "",
     val connected: Boolean = false,
     val loading: Boolean = false,
+    val loaded: Boolean = false,
     val saveStatus: SaveStatus = SaveStatus.Idle,
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
@@ -41,8 +42,12 @@ data class EditorUiState(
     val showAddSheet: Boolean = false,
     val editingLocation: EditorLocation? = null
 ) {
-    /** Editing is only allowed when a file is open and the session is connected. */
-    val editable: Boolean get() = openLocation != null && connected
+    /**
+     * Editing is allowed once a file is open with content loaded. Not gated on
+     * the `connected` flag: a loaded file stays editable offline (edits are
+     * cached for sync), and the flag can be stale relative to the real session.
+     */
+    val editable: Boolean get() = openLocation != null && loaded
 }
 
 @HiltViewModel
@@ -63,6 +68,7 @@ class EditorViewModel @Inject constructor(
     private var autosaveJob: Job? = null
 
     init {
+        android.util.Log.i("EditHandoff", "EditorViewModel created")
         viewModelScope.launch { reloadLocations() }
         viewModelScope.launch {
             pendingEditDao.observePendingPaths().collect { paths ->
@@ -72,16 +78,33 @@ class EditorViewModel @Inject constructor(
         viewModelScope.launch {
             sessionState.connected.collect { onConnectedChanged(it) }
         }
+        viewModelScope.launch {
+            sessionState.pendingEditPath.collect { path ->
+                android.util.Log.i("EditHandoff", "collect: path=$path")
+                if (path != null) {
+                    // Transient open handed over from the Files tab. Reacting to the
+                    // StateFlow emission (instead of a screen re-entry hook) makes
+                    // the handoff independent of composition timing. Consume it so a
+                    // later emission reopens the newest path.
+                    sessionState.clearPendingEdit()
+                    open(EditorLocation.of(remotePath = path))
+                }
+            }
+        }
     }
 
     /**
-     * Open a remote path handed over from the Files tab, if any. Called when the
-     * Editor screen (re)enters. The path is opened transiently — not persisted to
-     * the saved-locations list — and cleared so it isn't reopened.
+     * Fallback consume for a handed path, called when the Editor screen enters
+     * composition. Complements the reactive init collect: if the collect has not
+     * processed the emission yet (first-time VM creation ordering), the screen
+     * entry picks it up. Consume-and-clear keeps it idempotent with the collect,
+     * so the path is opened at most once.
      */
-    fun consumePendingEdit() {
-        val path = sessionState.pendingEditPath ?: return
-        sessionState.pendingEditPath = null
+    fun consumePendingEditIfAny() {
+        val path = sessionState.pendingEditPath.value
+        android.util.Log.i("EditHandoff", "entry-consume: path=$path")
+        if (path == null) return
+        sessionState.clearPendingEdit()
         open(EditorLocation.of(remotePath = path))
     }
 
@@ -142,23 +165,37 @@ class EditorViewModel @Inject constructor(
                 cached != null -> {
                     // Prefer un-synced local edits so offline work is never lost.
                     setLoadedContent(cached.content)
-                    uiState = uiState.copy(loading = false, saveStatus = SaveStatus.PendingSync)
-                }
-                !uiState.connected -> {
-                    setLoadedContent("")
-                    uiState = uiState.copy(loading = false, saveStatus = SaveStatus.NotConnected)
+                    uiState = uiState.copy(
+                        loading = false, saveStatus = SaveStatus.PendingSync, loaded = true
+                    )
                 }
                 else -> {
+                    // Attempt the read unconditionally: the outcome is the truth.
+                    // A dead/null session surfaces as IllegalStateException ->
+                    // NotConnected; a genuine read failure as SftpException ->
+                    // Error. Never gate on the connected flag, which can disagree
+                    // with the real session (stale false keeps the editor locked;
+                    // stale true crashes without the catches below).
                     try {
                         val text = sftpClient.readText(location.remotePath)
                         setLoadedContent(text)
-                        uiState = uiState.copy(loading = false, saveStatus = SaveStatus.Idle)
+                        uiState = uiState.copy(
+                            loading = false, saveStatus = SaveStatus.Idle, loaded = true
+                        )
                     } catch (e: SftpException) {
                         setLoadedContent("")
                         uiState = uiState.copy(
                             loading = false,
                             error = e.message ?: "Failed to open file",
-                            saveStatus = SaveStatus.Error(e.message ?: "Failed to open file")
+                            saveStatus = SaveStatus.Error(e.message ?: "Failed to open file"),
+                            loaded = false
+                        )
+                    } catch (e: IllegalStateException) {
+                        // Dead session: not connected, no crash. Recovery happens
+                        // on reconnect (onConnectedChanged self-heal).
+                        setLoadedContent("")
+                        uiState = uiState.copy(
+                            loading = false, saveStatus = SaveStatus.NotConnected, loaded = false
                         )
                     }
                 }
@@ -178,7 +215,7 @@ class EditorViewModel @Inject constructor(
         undoStack.reset("")
         uiState = uiState.copy(
             openLocation = null, content = "", canUndo = false, canRedo = false,
-            saveStatus = SaveStatus.Idle, error = null
+            saveStatus = SaveStatus.Idle, error = null, loaded = false
         )
     }
 
@@ -279,8 +316,14 @@ class EditorViewModel @Inject constructor(
         val location = uiState.openLocation
         if (!wasConnected && nowConnected && location != null) {
             // Reconnected: flush any pending offline edits for the open file.
-            if (pendingEditDao.get(location.remotePath) != null) {
-                doSave(location)
+            val pending = pendingEditDao.get(location.remotePath)
+            when {
+                pending != null -> doSave(location)
+                // The open landed in NotConnected before the session was up:
+                // re-run the cache-aware load now that connectivity is confirmed.
+                // Guarded by loaded so an in-memory edit of a loaded file is kept.
+                !uiState.loaded && uiState.saveStatus is SaveStatus.NotConnected ->
+                    open(location)
             }
         } else if (!nowConnected && location != null && uiState.saveStatus !is SaveStatus.PendingSync) {
             uiState = uiState.copy(saveStatus = SaveStatus.NotConnected)

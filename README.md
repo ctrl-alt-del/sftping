@@ -173,6 +173,11 @@ strategy progress, view models, etc.). The single instrumented test in
 - **The remote editor is text-only, one file at a time, and edit-existing-only**
   (no create-on-save). Saves are **last-write-wins** with no server-side conflict
   detection.
+- **The Files → Editor handoff is a one-shot event.** Tapping Edit opens the file
+  transiently in the Editor via a `pendingEditPath` StateFlow bridge (015, 019);
+  a file that failed to load (dead session) shows `NotConnected` and reloads on
+  the next reconnect (019), and there is no manual "reload" action. A 10 s SSH
+  keepalive keeps the session alive through browsing pauses.
 
 ## Development Workflow
 
