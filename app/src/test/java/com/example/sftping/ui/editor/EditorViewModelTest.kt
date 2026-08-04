@@ -312,28 +312,38 @@ class EditorViewModelTest {
     }
 
     @Test
-    fun `consumePendingEdit opens the handed path transiently and clears it`() = runTest {
+    fun `handed edit path set before VM creation opens transiently and clears it`() = runTest {
         client.files["/etc/app.conf"] = "server-content"
         session.setConnected(true)
-        session.pendingEditPath = "/etc/app.conf"
+        session.setPendingEdit("/etc/app.conf")
         val vm = vm()
-        advanceUntilIdle()
-
-        vm.consumePendingEdit()
         advanceUntilIdle()
 
         assertEquals("server-content", vm.uiState.content)
         assertEquals("/etc/app.conf", vm.uiState.openLocation?.remotePath)
-        assertNull(session.pendingEditPath)
+        assertNull(session.pendingEditPath.value)
         assertTrue(vm.uiState.locations.isEmpty())
     }
 
     @Test
-    fun `consumePendingEdit with no pending path does nothing`() = runTest {
+    fun `handed edit path set after VM creation opens transiently and clears it`() = runTest {
+        client.files["/etc/app.conf"] = "server-content"
+        session.setConnected(true)
         val vm = vm()
         advanceUntilIdle()
+        assertNull(vm.uiState.openLocation)
 
-        vm.consumePendingEdit()
+        session.setPendingEdit("/etc/app.conf")
+        advanceUntilIdle()
+
+        assertEquals("server-content", vm.uiState.content)
+        assertEquals("/etc/app.conf", vm.uiState.openLocation?.remotePath)
+        assertNull(session.pendingEditPath.value)
+    }
+
+    @Test
+    fun `no pending edit path leaves editor on the locations list`() = runTest {
+        val vm = vm()
         advanceUntilIdle()
 
         assertNull(vm.uiState.openLocation)

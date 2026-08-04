@@ -1,43 +1,42 @@
 # Editor First-Open Race — Takeaways
 
 ## What went well
-- The fix stayed in one file (`EditorViewModel.kt`): authoritative gate, one extra
-  catch, a `loaded` flag, and a reconnect recovery — no protocol, session, or UI
-  changes.
-- The reported workaround ("disconnect and retry once or twice") was the strongest
-  diagnostic clue: a reconnect re-fires the `connected` StateFlow `false → true`,
-  which re-syncs whatever state the open decision depended on. Any fix had to make
-  that recovery automatic — which the `onConnectedChanged` reload does.
+- **The device told us where to look.** The revised symptom (Editor shows the
+  locations list — `openLocation == null`) plus "plain retry still fails, only
+  reconnect works" pointed at the *handoff*, not the open decision. v1 had
+  hardened the wrong layer; the reactive bridge fixed the actual failure.
+- **A StateFlow bridge is the right primitive here.** `SessionState.pendingEditPath`
+  as `StateFlow<String?>` + an EditorVM init collect gives replay-to-new-subscribers
+  (VM created after the path is set) and push (VM already exists) — both ordering
+  cases covered with no composition timing. It mirrors the existing `connected`
+  pattern, so it reads naturally.
+- **The `navigateToEditor` event now only switches tabs.** The file-open no longer
+  depends on it, so even a dropped SharedFlow event is self-healing.
 
 ## What we learned / surprises
-- **`uiState.connected` is a mirror, not the source of truth.** The open decision
-  was gated on a VM-local copy updated by a collect coroutine; the decision read
-  happened asynchronously after a Room suspension, with no ordering guarantee.
-  `StateFlow.value` is the authoritative read — always current, thread-safe — and
-  the mirror should only drive UI affordances, never control flow.
-- **A one-shot decision with no recovery is the real defect.** Whether the stale
-  snapshot was the trigger in every case or just one interleaving, the code had no
-  path out of the `NotConnected` branch once taken. Self-healing on the
-  `false → true` transition closes that class of bug entirely.
-- **`openChannel()` throws raw `IllegalStateException`**, not `SftpException`.
-  `open()` only caught `SftpException`, so a snapshot-`true` + dead-session read
-  would have crashed. Worth remembering when touching `JschSftpClient` in future.
-- **Guarding the recovery needed a `loaded` flag.** Content-empty can't
-  distinguish "never loaded" from "legitimately empty file" or "user deleted
-  everything"; the flag is unambiguous and cheap.
+- **`LaunchedEffect(Unit)` + a plain mutable field is a fragile cross-VM bridge.**
+  The consume relies on the screen re-entering composition at the right moment
+  relative to the write. It worked in tests (which call the consume directly) and
+  even on some devices, but not reliably in production — the classic
+  "untested composition-order" gap. The cross-VM handoff test (FilesVM.editFile →
+  EditorVM opens) is the coverage that was missing.
+- **v1's connected-gate fix was still necessary** (authoritative `StateFlow.value`
+  read, `IllegalStateException` catch, reconnect self-heal) — it removes a latent
+  crash and a stale-snapshot race — but it could not fix a file that never opened.
+- **StateFlow conflates** — rapid Edit taps on A then B keep only B. That's
+  desirable ("open what I last tapped") but worth remembering for any bridge.
 
 ## Reusable patterns
-- Gate decisions on the authoritative source (`StateFlow.value`), keep derived
-  mirrors for display.
-- Any UI state that degrades permanently from a transient condition needs a
-  recovery transition (here: reconnect `false → true`) — never a silent dead end.
-- Catch the full exception surface of the layer you call (JSch's raw
-  `IllegalStateException` for not-connected), or crash.
+- Cross-ViewModel handoffs in a no-NavHost tab app: a `StateFlow` on the shared
+  singleton + a collect in the receiving VM (same as `connected`), instead of a
+  plain var + screen-entry `LaunchedEffect`.
+- When a bug "needs a reconnect to fix", look for what the reconnect forces to
+  happen (fresh screen re-entry / state re-emission) and make that event-driven
+  instead of timing-dependent.
 
 ## Known gaps / future work
-- The Files → Editor handoff (`SessionState.pendingEditPath` + `LaunchedEffect`
-  consume) remains fire-and-forget; converting the pending path to a
-  `StateFlow<String?>` collected by the EditorVM would remove the last
-  ordering-sensitive piece of the cross-tab bridge.
-- `JschSftpClient.openChannel()` could throw a typed `SftpException` instead of
-  `IllegalStateException` so every caller handles one exception type.
+- `navigateToEditor` is still a replay=0 SharedFlow; with the reactive bridge a
+  dropped event only delays the tab switch (the file opens regardless). Bumping to
+  replay=1 would also restore the tab switch — optional.
+- `JschSftpClient.openChannel()` still throws raw `IllegalStateException` for a
+  dead session; a typed `SftpException` would unify caller handling.

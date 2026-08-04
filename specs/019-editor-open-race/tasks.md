@@ -5,24 +5,28 @@
 - [x] Mockup: skipped (no UI change)
 - [x] test_plan.md documented
 
-## Block 1: Fix
+## Block 1: v1 — open() hardening
 - [x] **Task 1.1**: `open()` gates on `sessionState.connected.value` (authoritative)
       and catches `IllegalStateException` → `NotConnected`; add `loaded` flag to
-      `EditorUiState` (set in cache/read success branches, reset in NotConnected/
-      Error/close) — `ui/editor/EditorViewModel.kt`
-  - Build: `./gradlew assembleDebug`
-  - Tests: `./gradlew testDebug`
-- [x] **Task 1.2**: `onConnectedChanged()` reconnect recovery — on `false → true`,
-      after the pending-edit flush, re-run cache-aware `open()` when
-      `!loaded && saveStatus is NotConnected`; `editable` now also requires `loaded`
-      — `ui/editor/EditorViewModel.kt`
-  - Build: `./gradlew assembleDebug`
-  - Tests: `./gradlew testDebug`
-- [x] **Task 1.3**: Tests — reconnect reloads a file that opened while disconnected;
-      reconnect keeps in-memory edits of an already loaded file; open with dead
-      session maps to NotConnected (no crash) — `app/src/test/.../EditorViewModelTest.kt`
-  - Tests: `./gradlew testDebug`
+      `EditorUiState` — `ui/editor/EditorViewModel.kt`
+- [x] **Task 1.2**: `onConnectedChanged()` reconnect self-heal (re-run cache-aware
+      `open()` when stuck `NotConnected` with nothing loaded); `editable` requires
+      `loaded` — `ui/editor/EditorViewModel.kt`
+- [x] **Task 1.3**: v1 tests (reconnect reload, edit-preservation, dead-session open)
 
-## Block 2: Docs
-- [x] **Task 2.1**: takeaways.md → promote to MEMORY.md; update `specs/index.md`
-      (019 row), `AGENTS.md`/`README.md` known-gaps; flip plan.md status → ✅ Done
+## Block 2: v2 — reactive Files→Editor handoff
+- [x] **Task 2.1**: `SessionState.pendingEditPath` plain `@Volatile var` →
+      `StateFlow<String?>` + `setPendingEdit`/`clearPendingEdit` —
+      `sftp/SessionState.kt`
+- [x] **Task 2.2**: `FilesViewModel.editFile()` → `setPendingEdit(file.path)`;
+      `EditorViewModel` init collect opens + clears on non-null emission;
+      remove `consumePendingEdit()` and the `LaunchedEffect(Unit)` consume in
+      `EditorScreen` — `ui/files/FilesViewModel.kt`, `ui/editor/EditorViewModel.kt`,
+      `ui/editor/EditorScreen.kt`
+- [x] **Task 2.3**: tests — handoff with path set before VM creation, after VM
+      creation, full FilesVM→EditorVM handoff; update StateFlow API usages —
+      `EditorViewModelTest.kt`, `FilesViewModelTest.kt`
+
+## Block 3: Docs
+- [x] **Task 3.1**: takeaways.md → promote to MEMORY.md; update `specs/index.md`
+      (019 row), `AGENTS.md`/`README.md`; plan.md status → ✅ Done

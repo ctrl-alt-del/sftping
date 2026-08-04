@@ -43,7 +43,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,8 +67,6 @@ private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 @Composable
 fun EditorScreen(viewModel: EditorViewModel = viewModel()) {
     val state = viewModel.uiState
-
-    LaunchedEffect(Unit) { viewModel.consumePendingEdit() }
 
     if (state.showAddSheet) {
         LocationDialog(

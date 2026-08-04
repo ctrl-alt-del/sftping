@@ -73,17 +73,18 @@ class EditorViewModel @Inject constructor(
         viewModelScope.launch {
             sessionState.connected.collect { onConnectedChanged(it) }
         }
-    }
-
-    /**
-     * Open a remote path handed over from the Files tab, if any. Called when the
-     * Editor screen (re)enters. The path is opened transiently — not persisted to
-     * the saved-locations list — and cleared so it isn't reopened.
-     */
-    fun consumePendingEdit() {
-        val path = sessionState.pendingEditPath ?: return
-        sessionState.pendingEditPath = null
-        open(EditorLocation.of(remotePath = path))
+        viewModelScope.launch {
+            sessionState.pendingEditPath.collect { path ->
+                if (path != null) {
+                    // Transient open handed over from the Files tab. Reacting to the
+                    // StateFlow emission (instead of a screen re-entry hook) makes
+                    // the handoff independent of composition timing. Consume it so a
+                    // later emission reopens the newest path.
+                    sessionState.clearPendingEdit()
+                    open(EditorLocation.of(remotePath = path))
+                }
+            }
+        }
     }
 
     // ---- Locations CRUD ----

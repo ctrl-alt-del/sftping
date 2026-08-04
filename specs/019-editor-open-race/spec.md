@@ -1,81 +1,67 @@
 # Editor First-Open Race — Specification
 
 ## Bug Description
-After connecting and browsing, the first attempt to open a `.txt` file via **Files →
-long-press → Edit** lands on the Editor tab with a **read-only, empty editor**
-("cannot edit the file"). The user must disconnect and reconnect, then repeat the
-flow once or twice, before the file loads and becomes editable.
+After connecting and browsing, the first attempt to open a text file via **Files →
+long-press → Edit** lands on the Editor tab with the **locations list instead of
+the file editor** ("No saved locations yet"). The file never opens; the user must
+disconnect and reconnect, then repeat the flow, before the file opens.
 
-## Reproduction
-1. Connect to a remote host on the Connect tab.
-2. Go to the Files tab, long-press a text file, tap **Edit**.
-3. The Editor tab opens the file pane, but the field is read-only and empty
-   (`SaveStatus.NotConnected`), even though the session is live (browsing works).
+Confirmed on-device (019 fix included): the Edit menu does auto-navigate to the
+Editor tab (so `editFile` runs and the path is set), and a plain retry **without**
+disconnecting still fails — only a disconnect+reconnect recovers.
 
-## Root Cause
-A one-shot, non-recoverable open decision based on a **derived snapshot** of
-connection state:
+## Root Cause (revised — v2)
 
-1. `EditorViewModel.open()` decides between "read the file" and "read-only
-   `NotConnected`" by checking `!uiState.connected` — a VM-local copy of
-   `SessionState.connected` fed by the collect coroutine started in `init`.
-2. That check runs **asynchronously inside a coroutine, after a Room suspension**
-   (`pendingEditDao.get()`), so nothing orders the collect's delivery against the
-   decision read.
-3. If the check reads `false` on first Editor entry (the collect emission not yet
-   applied to `uiState`), `open()` silently takes the `NotConnected` branch: the
-   file "opens" with empty content and `readOnly = !editable`. There is **no retry
-   path**: `open()` never re-checks, and `onConnectedChanged()` only flushed
-   *pending edits* on reconnect — it never reloaded a stuck open.
-4. The only escape was a reconnect, which re-fires `SessionState.connected`
-   `false → true`, re-emits to the (by then existing) ViewModel, and lets the next
-   `consumePendingEdit()`/`open()` see `true` — exactly the reported workaround.
+The transient-open **handoff** is fire-and-forget and order-dependent:
 
-### Latent crash in the same path
-`open()` catches only `SftpException`, but `JschSftpClient.openChannel()` throws a
-raw `IllegalStateException("Not connected")` when the session is down. If the
-snapshot is stale-`true` while the session actually died, `readText()` throws
-uncaught → crash instead of a graceful NotConnected state.
+1. `FilesViewModel.editFile()` writes the path to a plain `@Volatile var
+   SessionState.pendingEditPath` and emits a `navigateToEditor` SharedFlow event.
+2. `EditorScreen` consumes the path via `LaunchedEffect(Unit) {
+   viewModel.consumePendingEdit() }` — i.e., the open only happens if the
+   Editor screen (re)enters composition *after* the path was written and reads
+   the var at exactly the right time.
+3. On-device, `consumePendingEdit()` does not open the file (the consume runs
+   without seeing the path — a composition-frame timing race between the
+   LaunchedEffect dispatch and the write/consume). `openLocation` stays `null`,
+   so the Editor shows the locations list. Because the LaunchedEffect consume
+   and the plain var have no ordering guarantee, the failure persists across
+   plain retries; only a disconnect+reconnect (which forces a fresh Editor
+   re-entry at a different point) happens to succeed.
 
-## Fix
-Three small changes, all in `ui/editor/EditorViewModel.kt`:
+The v1 fix (019) hardened `EditorViewModel.open()` — authoritative
+`sessionState.connected.value` gate, `IllegalStateException` catch, `loaded`
+flag, reconnect self-heal — but did not touch the handoff, so the symptom
+persisted. That hardening is correct and stays.
 
-1. **Decide with the authoritative source.** `open()` gates on
-   `sessionState.connected.value` (a `StateFlow.value` read is always current and
-   thread-safe) instead of the `uiState.connected` mirror. The mirror remains for
-   UI display only.
-2. **Crash-proof the read.** `open()` also catches `IllegalStateException`
-   (dead session between the check and the read) and maps it to `NotConnected`.
-3. **Self-heal on reconnect.** `onConnectedChanged()` — on the `false → true`
-   transition, after the existing pending-edit flush — re-runs the cache-aware
-   `open()` when the open file is stuck in `NotConnected` with nothing loaded.
-   The manual "disconnect and retry" workaround becomes automatic.
+## Fix (v2 — reactive bridge)
 
-### Why a `loaded` flag
-The recovery must not clobber in-memory edits of an already-loaded file when a
-session drops and reconnects (the offline-editing flow from 014). A new
-`EditorUiState.loaded` flag is `true` once content was materialized (cache branch
-or successful remote read) and `false` in the NotConnected/Error branches. The
-recovery fires only when `!loaded && saveStatus is NotConnected`.
+Make the handoff reactive and composition-independent:
 
-`editable` additionally requires `loaded`, so a failed load (dead session, read
-error) leaves the field locked — consistent with its "Not connected" status —
-until the recovery (reconnect) reloads it.
+1. **`sftp/SessionState.kt`**: `pendingEditPath` becomes a
+   `MutableStateFlow<String?>` (private) exposed as `StateFlow` with
+   `setPendingEdit(path)` / `clearPendingEdit()` — mirroring the existing
+   `connected` pattern. Thread-safe; replays the current value to new
+   subscribers and pushes updates.
+2. **`ui/files/FilesViewModel.kt`** `editFile()`: `sessionState.setPendingEdit(
+   file.path)`; the `navigateToEditor` emit stays (tab switch only).
+3. **`ui/editor/EditorViewModel.kt`**: replace `consumePendingEdit()` and the
+   `LaunchedEffect(Unit)` consume in `EditorScreen` with an **init collect** on
+   `sessionState.pendingEditPath`: on a non-null path → `clearPendingEdit()` →
+   `open(EditorLocation.of(path))`. The EditorVM opens the file the moment the
+   path is set — no screen re-entry, no frame timing.
 
 ## Acceptance Criteria
-- [ ] Fresh connect → Files → long-press → Edit opens the file with content and an
-      editable field on the first attempt.
-- [ ] If the first open lands in `NotConnected` (session down), reconnecting from
-      the Connect tab reloads the file automatically — no manual re-tap of Edit.
-- [ ] In-memory edits of an already-loaded file survive a disconnect → reconnect
-      (field unlocks, content untouched, no reload).
-- [ ] Opening with a dead session shows `NotConnected` (no crash).
-- [ ] Existing editor behaviors (offline read-only open, cache-first open, pending
-      edit flush on reconnect, permission-denied save) are unchanged.
+- [ ] Fresh connect → Files → long-press → Edit opens the file with content and
+      an editable field on the first attempt, every time.
+- [ ] A plain retry (Files → Edit again, no disconnect) opens the file.
+- [ ] The open works whether the EditorViewModel already exists or is created
+      after the path is set (StateFlow replay + push).
+- [ ] No disconnect/reconnect ritual needed.
+- [ ] Existing editor behaviors (offline read-only open, cache-first open,
+      pending-edit flush, permission-denied save, v1 self-heal) are unchanged.
 
 ## Out of Scope
-- Hardening the Files → Editor handoff (`SessionState.pendingEditPath` +
-  `LaunchedEffect` consume) — it is fragile but demonstrably working (the user
-  reaches the Editor); noted as a future improvement.
-- Changing `JschSftpClient.openChannel()`'s exception type (`IllegalStateException`
-  vs `SftpException`) — kept as-is to stay minimal; the Editor now handles it.
+- Changing `JschSftpClient.openChannel()`'s exception type — the Editor now
+  handles both `SftpException` and `IllegalStateException`.
+- `navigateToEditor` SharedFlow hardening (replay=1) — with the reactive bridge,
+  a dropped nav event is self-healing (the file opens in the VM regardless).

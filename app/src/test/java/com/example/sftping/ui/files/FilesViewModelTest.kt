@@ -2,11 +2,14 @@ package com.example.sftping.ui.files
 
 import android.content.Context
 import android.net.Uri
+import com.example.sftping.data.editor.FakePendingEditDao
+import com.example.sftping.data.editor.InMemoryEditorLocationRepository
 import com.example.sftping.sftp.ISftpClient
 import com.example.sftping.sftp.RemoteFile
 import com.example.sftping.sftp.SessionState
 import com.example.sftping.sftp.SftpException
 import com.example.sftping.transfer.TransferManager
+import com.example.sftping.ui.editor.EditorViewModel
 import com.example.sftping.util.InMemoryClipboard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -310,9 +313,28 @@ class FilesViewModelTest {
         vm.editFile(RemoteFile("app.conf", "/etc/app.conf", 100, 0, false))
         advanceUntilIdle()
 
-        assertEquals("/etc/app.conf", sessionState.pendingEditPath)
+        assertEquals("/etc/app.conf", sessionState.pendingEditPath.value)
         assertTrue(navigated)
         job.cancel()
+    }
+
+    @Test
+    fun `editFile hands the path to the editor which opens it transiently`() = runTest {
+        doReturn(emptyList<RemoteFile>()).`when`(client).listFiles(any())
+        doReturn("server-content").`when`(client).readText("/etc/app.conf")
+        sessionState.setConnected(true)
+        val filesVm = FilesViewModel(client, transferManager, context, sessionState, clipboard)
+        val editorVm = EditorViewModel(
+            client, InMemoryEditorLocationRepository(), FakePendingEditDao(), sessionState
+        )
+        advanceUntilIdle()
+
+        filesVm.editFile(RemoteFile("app.conf", "/etc/app.conf", 100, 0, false))
+        advanceUntilIdle()
+
+        assertEquals("/etc/app.conf", editorVm.uiState.openLocation?.remotePath)
+        assertEquals("server-content", editorVm.uiState.content)
+        assertNull(sessionState.pendingEditPath.value)
     }
 
     @Test
