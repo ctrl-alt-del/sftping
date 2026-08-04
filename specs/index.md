@@ -1,5 +1,5 @@
 ---
-last_updated: "2026-07-17"
+last_updated: "2026-08-04"
 ---
 
 # Feature Index
@@ -24,6 +24,7 @@ last_updated: "2026-07-17"
 | 016 | Session Health & Stale Connected State | ✅ Done | `sftp/JschSftpClient.kt` | 001, 008, 010, 014 |
 | 017 | CI Integration (GitHub Actions) | ✅ Done | `.github/workflows/ci.yml`, `AGENTS.md`, `README.md`, `MEMORY.md` | — |
 | 018 | Connection Status Indicator | ✅ Done | `ui/components/`, `ui/files/`, `ui/transfers/`, `ui/editor/` | 001, 008, 016 |
+| 019 | Editor First-Open Race (stuck read-only editor) | ✅ Done | `ui/editor/EditorViewModel.kt`, `test/.../EditorViewModelTest.kt` | 014, 015, 016 |
 
 Status: 📋 Planned → 🚧 In Progress → ✅ Done → 📦 Archived
 

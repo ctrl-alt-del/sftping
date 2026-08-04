@@ -50,7 +50,10 @@ Package map under `com/example/sftping/`:
 > The remote editor is text-only, one file at a time, edit-existing-only, and
 > saves last-write-wins (no server-side conflict detection). The **Edit** action is
 > gated on file *type*, not permissions — SFTP can't predict write access, so a
-> denied write surfaces as a save-time error. See `README.md` and `MEMORY.md`.
+> denied write surfaces as a save-time error. The Files→Editor handoff
+> (`pendingEditPath` + `LaunchedEffect` consume, 015) is fire-and-forget: a file
+> opened while disconnected stays read-only until a reconnect reloads it (019).
+> See `README.md` and `MEMORY.md`.
 
 ## Commands
 

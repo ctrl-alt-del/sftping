@@ -34,6 +34,7 @@ data class EditorUiState(
     val content: String = "",
     val connected: Boolean = false,
     val loading: Boolean = false,
+    val loaded: Boolean = false,
     val saveStatus: SaveStatus = SaveStatus.Idle,
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
@@ -41,8 +42,8 @@ data class EditorUiState(
     val showAddSheet: Boolean = false,
     val editingLocation: EditorLocation? = null
 ) {
-    /** Editing is only allowed when a file is open and the session is connected. */
-    val editable: Boolean get() = openLocation != null && connected
+    /** Editing is only allowed when a file is open with content loaded and the session is connected. */
+    val editable: Boolean get() = openLocation != null && connected && loaded
 }
 
 @HiltViewModel
@@ -142,23 +143,39 @@ class EditorViewModel @Inject constructor(
                 cached != null -> {
                     // Prefer un-synced local edits so offline work is never lost.
                     setLoadedContent(cached.content)
-                    uiState = uiState.copy(loading = false, saveStatus = SaveStatus.PendingSync)
+                    uiState = uiState.copy(
+                        loading = false, saveStatus = SaveStatus.PendingSync, loaded = true
+                    )
                 }
-                !uiState.connected -> {
+                // Read the authoritative StateFlow value, not the UI mirror, so the
+                // decision can't race the connected-collector's delivery.
+                !sessionState.connected.value -> {
                     setLoadedContent("")
-                    uiState = uiState.copy(loading = false, saveStatus = SaveStatus.NotConnected)
+                    uiState = uiState.copy(
+                        loading = false, saveStatus = SaveStatus.NotConnected, loaded = false
+                    )
                 }
                 else -> {
                     try {
                         val text = sftpClient.readText(location.remotePath)
                         setLoadedContent(text)
-                        uiState = uiState.copy(loading = false, saveStatus = SaveStatus.Idle)
+                        uiState = uiState.copy(
+                            loading = false, saveStatus = SaveStatus.Idle, loaded = true
+                        )
                     } catch (e: SftpException) {
                         setLoadedContent("")
                         uiState = uiState.copy(
                             loading = false,
                             error = e.message ?: "Failed to open file",
-                            saveStatus = SaveStatus.Error(e.message ?: "Failed to open file")
+                            saveStatus = SaveStatus.Error(e.message ?: "Failed to open file"),
+                            loaded = false
+                        )
+                    } catch (e: IllegalStateException) {
+                        // Dead session between the connected check and the read:
+                        // not connected, no crash. Recovery happens on reconnect.
+                        setLoadedContent("")
+                        uiState = uiState.copy(
+                            loading = false, saveStatus = SaveStatus.NotConnected, loaded = false
                         )
                     }
                 }
@@ -178,7 +195,7 @@ class EditorViewModel @Inject constructor(
         undoStack.reset("")
         uiState = uiState.copy(
             openLocation = null, content = "", canUndo = false, canRedo = false,
-            saveStatus = SaveStatus.Idle, error = null
+            saveStatus = SaveStatus.Idle, error = null, loaded = false
         )
     }
 
@@ -279,8 +296,14 @@ class EditorViewModel @Inject constructor(
         val location = uiState.openLocation
         if (!wasConnected && nowConnected && location != null) {
             // Reconnected: flush any pending offline edits for the open file.
-            if (pendingEditDao.get(location.remotePath) != null) {
-                doSave(location)
+            val pending = pendingEditDao.get(location.remotePath)
+            when {
+                pending != null -> doSave(location)
+                // The open landed in NotConnected before the session was up:
+                // re-run the cache-aware load now that connectivity is confirmed.
+                // Guarded by loaded so an in-memory edit of a loaded file is kept.
+                !uiState.loaded && uiState.saveStatus is SaveStatus.NotConnected ->
+                    open(location)
             }
         } else if (!nowConnected && location != null && uiState.saveStatus !is SaveStatus.PendingSync) {
             uiState = uiState.copy(saveStatus = SaveStatus.NotConnected)

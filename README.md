@@ -173,6 +173,10 @@ strategy progress, view models, etc.). The single instrumented test in
 - **The remote editor is text-only, one file at a time, and edit-existing-only**
   (no create-on-save). Saves are **last-write-wins** with no server-side conflict
   detection.
+- **The Files → Editor handoff is fire-and-forget** (a one-shot
+  `SessionState.pendingEditPath` + `LaunchedEffect` consume, 015). It works, but a
+  path opened while disconnected stays read-only until a reconnect — the editor
+  reloads automatically on reconnect (019), yet there is no manual "reload" action.
 
 ## Development Workflow
 

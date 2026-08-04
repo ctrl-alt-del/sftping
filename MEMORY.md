@@ -186,6 +186,22 @@
   green/red bar above the TopAppBar via the shared `ConnectionIndicator`
   composable in `ui/components/`. `AnimatedVisibility` smooths transitions.
   No polling — StateFlow push model. (018)
+- ⚡ `#ui` **Gate decisions on the authoritative `StateFlow.value`, not a VM
+  mirror.** The editor's `open()` gated on `uiState.connected` — a collect-fed copy
+  read asynchronously after a Room suspend — a race that stranded the editor in a
+  read-only `NotConnected` state (empty content, field locked) until a reconnect
+  re-fired the StateFlow `false → true`. Read `SessionState.connected.value` for
+  control flow; keep the `uiState` copy for display only. Related: 
+  `JschSftpClient.openChannel()` throws a raw `IllegalStateException("Not connected")`
+  for a dead session (not `SftpException`) — callers must catch it or crash. (019)
+- `#ui` **One-shot decisions need a recovery transition.** Any UI state that can
+  degrade permanently from a transient condition needs a self-heal path. The
+  Editor's `onConnectedChanged` re-runs the cache-aware `open()` on the
+  `false → true` reconnect transition when the open file is stuck in
+  `NotConnected` with nothing loaded; a `loaded` flag (content materialized from
+  cache/remote) guards it so in-memory edits of a loaded file survive a
+  drop/reconnect. `editable` requires `loaded` too, so failed loads stay read-only.
+  (019)
 - ⚡ `#api` **Don't predict SFTP write access from a listing.** SFTP exposes no whoami/uid/
   supplementary-groups, so any client-side "can I edit this?" check is a heuristic with
   false negatives (group/ACL access you can't see). Gate the **Edit** action on file
@@ -389,7 +405,7 @@
 | `ui/connection/` | 001, 007, 008, 010, 016 | Connection form + VM; trusted-hosts manager + revoke (007); password show/hide + default-directory field (008); bumps `SessionState.epoch` on connect (010); `connected` StateFlow observer + disconnect button (016) |
 | `ui/files/` (incl. `FileView.kt`, `UploadCandidate.kt`, `EditableFileType.kt`) | 001, 002, 008, 009, 010, 011, 015, 018 | File browser in 001; file actions in 002; start dir seeded from `SessionState` (008); hidden toggle + sort + search via pure `FileView` (009); `onEnterScreen` remembers last path across tab switches (010); batch upload sheet + multi-download + uploaded memory (011); long-press context menu (copy path / edit / select) + `EditableFileType` allowlist (015); connection indicator (018) |
 | `ui/transfers/` | 002, 004, 012, 013, 018 | Transfers list, progress, pause/resume/cancel, swipe + multi-select; retry failed uploads (012); collapsible sections + retry-all (013); connection indicator + SessionState injection (018) |
-| `ui/editor/` (`EditorScreen.kt`, `EditorViewModel.kt`, `UndoStack.kt`) | 014, 015, 018 | Remote text editor: locations list + editor pane, autosave/offline-cache/reconnect-flush VM, pure UndoStack; `consumePendingEdit` transient open + permission-denied save-error mapping (015); connection indicator (018) |
+| `ui/editor/` (`EditorScreen.kt`, `EditorViewModel.kt`, `UndoStack.kt`) | 014, 015, 018, 019 | Remote text editor: locations list + editor pane, autosave/offline-cache/reconnect-flush VM, pure UndoStack; `consumePendingEdit` transient open + permission-denied save-error mapping (015); connection indicator (018); authoritative `connected` gate + `IllegalStateException` catch + `loaded` flag + reconnect reload recovery (019) |
 | `ui/components/ConnectionIndicator.kt` | 018 | Shared connection status bar (green/red dot) |
 | `util/Clipboard.kt` | 015 | `Clipboard` interface + `AndroidClipboard` + `InMemoryClipboard` double |
 | `di/ClipboardModule.kt` | 015 | Hilt `@Binds` for `Clipboard` |
@@ -469,6 +485,16 @@
   (network change, server timeout, Doze). Fix: `openChannel()` now checks
   `session.isConnected` and calls `disconnectInternal()` to sync the flag when the
   session is dead. One change covers all 10 SFTP operations.
+- ⚡ **019** First edit after a fresh connect opened the Editor with an empty,
+  read-only field ("cannot edit") until the user disconnected and reconnected 1–2×.
+  Root cause: `open()` gated on the `uiState.connected` mirror (collect-fed copy) read
+  asynchronously after a Room suspend — a race stranded the open in the
+  `NotConnected` branch with no retry path. Fix: gate on the authoritative
+  `sessionState.connected.value`; catch `openChannel()`'s raw
+  `IllegalStateException` (was a latent crash); add a `loaded` flag and re-run the
+  cache-aware `open()` on the reconnect `false → true` transition when stuck
+  `NotConnected` with nothing loaded (guarded so in-memory edits survive a
+  drop/reconnect). `editable` now also requires `loaded`.
 
 ## 🧠 AI Workflow Rule
 

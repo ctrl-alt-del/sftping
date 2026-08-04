@@ -130,6 +130,63 @@ class EditorViewModelTest {
     }
 
     @Test
+    fun `reconnect reloads a file that opened while disconnected`() = runTest {
+        repo.add(loc)
+        client.files[loc.remotePath] = "remote-content"
+        val vm = vm()
+        advanceUntilIdle()
+        vm.open(loc)
+        advanceUntilIdle()
+        assertFalse(vm.uiState.editable)
+        assertTrue(vm.uiState.saveStatus is SaveStatus.NotConnected)
+
+        session.setConnected(true)
+        advanceUntilIdle()
+
+        assertEquals("remote-content", vm.uiState.content)
+        assertTrue(vm.uiState.editable)
+        assertTrue(vm.uiState.saveStatus is SaveStatus.Idle)
+    }
+
+    @Test
+    fun `reconnect keeps in-memory edits of an already loaded file`() = runTest {
+        repo.add(loc)
+        client.files[loc.remotePath] = "old"
+        session.setConnected(true)
+        val vm = vm()
+        advanceUntilIdle()
+        vm.open(loc)
+        advanceUntilIdle()
+        vm.onContentChange("edited")
+        advanceUntilIdle()
+
+        session.setConnected(false)
+        advanceUntilIdle()
+        assertTrue(vm.uiState.saveStatus is SaveStatus.NotConnected)
+
+        session.setConnected(true)
+        advanceUntilIdle()
+
+        assertEquals("edited", vm.uiState.content)
+        assertTrue(vm.uiState.editable)
+    }
+
+    @Test
+    fun `open with dead session maps to NotConnected instead of crashing`() = runTest {
+        repo.add(loc)
+        client.readThrowsIllegalState = true
+        session.setConnected(true)
+        val vm = vm()
+        advanceUntilIdle()
+
+        vm.open(loc)
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.saveStatus is SaveStatus.NotConnected)
+        assertFalse(vm.uiState.editable)
+    }
+
+    @Test
     fun `open non-existent path surfaces error`() = runTest {
         repo.add(loc)
         client.readThrows = true
@@ -327,11 +384,13 @@ private class FakeSftpClient : ISftpClient {
     val files = mutableMapOf<String, String>()
     var readThrows = false
     var writeThrows = false
+    var readThrowsIllegalState = false
     var writeError: SftpException? = null
     var readCount = 0
 
     override suspend fun readText(path: String): String {
         readCount++
+        if (readThrowsIllegalState) throw IllegalStateException("Not connected")
         if (readThrows) throw SftpException("read failed")
         return files[path] ?: throw SftpException("no such file")
     }
