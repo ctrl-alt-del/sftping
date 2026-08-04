@@ -26,10 +26,12 @@ class SessionState @Inject constructor() {
     val pendingEditPath: StateFlow<String?> = _pendingEditPath.asStateFlow()
 
     fun setPendingEdit(path: String) {
+        android.util.Log.i("EditHandoff", "setPendingEdit($path)")
         _pendingEditPath.value = path
     }
 
     fun clearPendingEdit() {
+        android.util.Log.i("EditHandoff", "clearPendingEdit()")
         _pendingEditPath.value = null
     }
 

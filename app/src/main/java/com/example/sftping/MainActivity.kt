@@ -70,7 +70,10 @@ fun SftpingShell() {
             )
             AppDestinations.FILES -> FilesScreen(
                 onNavigateToConnection = { currentDestination = AppDestinations.CONNECT },
-                onNavigateToEditor = { currentDestination = AppDestinations.EDITOR }
+                onNavigateToEditor = {
+                    android.util.Log.i("EditHandoff", "onNavigateToEditor -> EDITOR")
+                    currentDestination = AppDestinations.EDITOR
+                }
             )
             AppDestinations.TRANSFERS -> TransfersScreen()
             AppDestinations.EDITOR -> EditorScreen()

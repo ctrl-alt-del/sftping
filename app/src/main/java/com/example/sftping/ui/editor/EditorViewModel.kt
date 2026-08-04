@@ -68,6 +68,7 @@ class EditorViewModel @Inject constructor(
     private var autosaveJob: Job? = null
 
     init {
+        android.util.Log.i("EditHandoff", "EditorViewModel created")
         viewModelScope.launch { reloadLocations() }
         viewModelScope.launch {
             pendingEditDao.observePendingPaths().collect { paths ->
@@ -79,6 +80,7 @@ class EditorViewModel @Inject constructor(
         }
         viewModelScope.launch {
             sessionState.pendingEditPath.collect { path ->
+                android.util.Log.i("EditHandoff", "collect: path=$path")
                 if (path != null) {
                     // Transient open handed over from the Files tab. Reacting to the
                     // StateFlow emission (instead of a screen re-entry hook) makes
@@ -99,7 +101,9 @@ class EditorViewModel @Inject constructor(
      * so the path is opened at most once.
      */
     fun consumePendingEditIfAny() {
-        val path = sessionState.pendingEditPath.value ?: return
+        val path = sessionState.pendingEditPath.value
+        android.util.Log.i("EditHandoff", "entry-consume: path=$path")
+        if (path == null) return
         sessionState.clearPendingEdit()
         open(EditorLocation.of(remotePath = path))
     }
